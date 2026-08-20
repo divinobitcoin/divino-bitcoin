@@ -1,0 +1,31 @@
+name: Suggestion or improvement
+description: Propose a serious, evidence-based improvement.
+title: "suggestion: "
+labels:
+  - suggestion
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Suggestions are welcome. Please keep the current security scope in mind: do not request Mainnet, real funds, secrets, signing, broadcast, operational endpoints, or active Lightning without a documented gate proposal.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem should this solve?
+      description: Explain who is affected and why the current behavior is insufficient.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed approach
+      description: Describe the change, alternatives considered, and expected trade-offs.
+    validations:
+      required: true
+  - type: textarea
+    id: security
+    attributes:
+      label: Security and scope considerations
+      description: Explain how the proposal respects the documented demo-mode and Signet gates.
+    validations:
+      required: true

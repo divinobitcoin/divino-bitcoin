@@ -1,0 +1,46 @@
+name: Bug report
+description: Report a reproducible problem in the current demonstration scope.
+title: "bug: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for helping improve Divino Bitcoin. Do not include seeds, private keys, passwords, recovery material, authentication codes, personal data, or real-fund details. Security vulnerabilities must follow SECURITY.md.
+  - type: textarea
+    id: summary
+    attributes:
+      label: What happened?
+      description: Describe the observable behavior and the expected behavior.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Reproduction steps
+      description: Provide the smallest safe, deterministic sequence of steps.
+      placeholder: |
+        1. Open...
+        2. Tap...
+        3. Observe...
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options:
+        - Android development build
+        - Expo Go (demonstration scope)
+        - Web
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Safe evidence
+      description: Share redacted logs, screenshots, or error messages only. Remove all sensitive data first.
+    validations:
+      required: false
