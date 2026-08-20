@@ -1,0 +1,45 @@
+flowchart LR
+  subgraph U[Zona do usuário]
+    User[Usuário]
+    Backup[Backup de recuperação]
+    Signer[Assinador de hardware opcional]
+  end
+
+  subgraph D[Dispositivo móvel]
+    App[Divino Bitcoin]
+    Vault[Cofre criptográfico futuro]
+    Intent[Intenção e PSBT]
+    OS[Keystore e biometria do SO]
+  end
+
+  subgraph N[Zona de rede não confiável]
+    Chain[Fontes on-chain e peers]
+    LNode[Peers Lightning]
+    Relay[Relays e provedores auxiliares]
+  end
+
+  subgraph B[Cadeia de fornecimento]
+    Source[Código-fonte e revisões]
+    Build[Build assinado e SBOM]
+    Store[Distribuição]
+  end
+
+  User -->|confirma intenção| App
+  App <-->|dados mínimos| Vault
+  Vault <-->|proteção de chave| OS
+  App -->|PSBT sem segredo| Signer
+  App <-->|transações e estado| Intent
+  App <-->|consulta e transmissão| Chain
+  App <-->|canais, invoices e pagamentos| LNode
+  App <-->|serviços estritamente necessários| Relay
+  User -->|recuperação fora do dispositivo| Backup
+  Source --> Build --> Store --> App
+
+  classDef trusted fill:#184D47,color:#fff,stroke:#0E322E
+  classDef device fill:#D97706,color:#fff,stroke:#92400E
+  classDef untrusted fill:#991B1B,color:#fff,stroke:#7F1D1D
+  classDef supply fill:#1D4ED8,color:#fff,stroke:#1E3A8A
+  class User,Backup,Signer trusted
+  class App,Vault,Intent,OS device
+  class Chain,LNode,Relay untrusted
+  class Source,Build,Store supply

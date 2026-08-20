@@ -1,0 +1,9 @@
+{
+  "platforms": ["apple", "android"],
+  "apple": {
+    "modules": ["DivinoNativeVaultModule"]
+  },
+  "android": {
+    "modules": ["expo.modules.divinonativevault.DivinoNativeVaultModule"]
+  }
+}

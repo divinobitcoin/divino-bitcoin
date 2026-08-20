@@ -1,0 +1,15 @@
+Divino Bitcoin
+Copyright (C) 2026 Divino Bitcoin contributors
+
+SPDX-License-Identifier: GPL-3.0-or-later
+
+This project is licensed under the GNU General Public License, version 3
+or (at your option) any later version (GPL-3.0-or-later).
+
+The authoritative license text is available at:
+https://www.gnu.org/licenses/gpl-3.0.html
+
+Every source release and distributed build of Divino Bitcoin must make the
+corresponding source, this license notice, dependency notices, and build
+instructions available under the terms of GPL-3.0-or-later. Third-party
+components remain subject to their own notices and licenses.
