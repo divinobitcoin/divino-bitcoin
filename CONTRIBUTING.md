@@ -28,4 +28,4 @@ Before requesting review, run the project’s applicable tests, TypeScript check
 
 Be respectful, precise, and transparent about conflicts of interest. The project welcomes disagreement grounded in evidence. It does not accept spam, fraud, harassment, discrimination, token promotion, investment solicitation, fabricated claims, vote manipulation, or pressure to bypass security gates.
 
-By participating, you agree to follow the [Code of Conduct](CODE_OF_CONDUCT.md). For general contact, use `contatodivinobitcoin@proton.me`.
+By participating, you agree to follow the [Code of Conduct](CODE_OF_CONDUCT.md). For general contact, use `contatodivinobitcoin@proton.me`. Community updates and general discussion are also available through the official [Divino Bitcoin Telegram channel](https://t.me/divinobitcoin); do not use Telegram to report security vulnerabilities or share any sensitive material.
