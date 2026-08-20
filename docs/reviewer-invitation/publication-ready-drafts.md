@@ -2,7 +2,7 @@
 
 **Estado:** textos preparados, ainda não publicados. Substituir `PUBLIC_COMMIT_SHA` pela referência imutável da cópia pública higienizada imediatamente antes da publicação.
 
-**Repositório oficial:** <https://github.com/juliomartins4200/divino-bitcoin>  
+**Repositório oficial:** <https://github.com/divinobitcoin/divino-bitcoin>
 **Contato público:** `contatodivinobitcoin@proton.me`
 
 ## 1. Anúncio fixado no GitHub Discussions
@@ -53,7 +53,7 @@ Seeking an independent Kotlin/Swift mobile-security reviewer for Divino Bitcoin,
 
 The review scope is intentionally narrow: an Expo native-vault boundary that currently rejects secret operations. It includes Kotlin/Swift parity, the bridge, development-build/autolinking controls and negative tests for logs, clipboard, backup and storage. It explicitly excludes seeds, private keys, signing, transactions, broadcast, network endpoints, Lightning and real funds.
 
-Public code and review package: https://github.com/juliomartins4200/divino-bitcoin (reference `PUBLIC_COMMIT_SHA` once published).
+Public code and review package: https://github.com/divinobitcoin/divino-bitcoin (reference `PUBLIC_COMMIT_SHA` once published).
 
 Please reply only if this type of scoped review is permitted by this community’s rules. Private coordination: contatodivinobitcoin@proton.me.
 ```
@@ -65,7 +65,7 @@ Hello moderators,
 
 I represent Divino Bitcoin, an open-source GPL-3.0-or-later wallet project. Before posting, I would like to confirm whether this community permits a narrowly scoped request for an independent Kotlin/Swift mobile-security code review.
 
-The project is currently in demonstration mode; the review concerns only a native boundary that rejects secret operations. It does not solicit funds, payments, tokens, promotions or investment activity. The public repository and review materials are available at https://github.com/juliomartins4200/divino-bitcoin.
+The project is currently in demonstration mode; the review concerns only a native boundary that rejects secret operations. It does not solicit funds, payments, tokens, promotions or investment activity. The public repository and review materials are available at https://github.com/divinobitcoin/divino-bitcoin.
 
 If such a post is appropriate, I will adapt it to your rules and disclose my affiliation. Thank you.
 ```

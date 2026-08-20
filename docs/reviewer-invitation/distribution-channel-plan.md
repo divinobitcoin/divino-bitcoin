@@ -4,7 +4,7 @@
 
 **Contato público:** `contatodivinobitcoin@proton.me`.
 
-**Repositório público:** <https://github.com/juliomartins4200/divino-bitcoin>.
+**Repositório público:** <https://github.com/divinobitcoin/divino-bitcoin>.
 
 ## Política de identidade e contato
 
