@@ -21,6 +21,11 @@ export const PUBLIC_BIP_TEST_VECTORS = {
   },
   bip84: {
     classification: "public-specification-vector",
+    // Mesma mnemonic do vetor BIP-39 acima, mas com passphrase vazia — é
+    // assim que a especificação BIP-84 publica o vetor oficial, distinto do
+    // vetor BIP-39 (que usa a passphrase pública "TREZOR").
+    seedHex:
+      "5eb00bbddcf069084889a8ab9155568165f5c453ccb85e70811aaed6f6da5fc19a5ac40b389cd370d086206dec8aa6c43daea6690f20ad3d8d48b2d2ce9e38e4",
     path: "m/84'/0'/0'/0/0",
     expectedAddress: "bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu",
   },

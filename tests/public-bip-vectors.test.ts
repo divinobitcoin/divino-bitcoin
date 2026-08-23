@@ -25,9 +25,9 @@ describe("catálogo público de vetores BIP", () => {
     expect(JSON.stringify(PUBLIC_BIP_TEST_VECTORS)).not.toContain("xprv");
   });
 
-  it("mantém passphrase e derivação real bloqueadas nesta fase", () => {
+  it("mantém passphrase bloqueada e confirma que a derivação real existe", () => {
     expect(BIP39_PASSPHRASE_POLICY.enabled).toBe(false);
-    expect(SIGNET_TEST_COMPATIBLE_BIP84_POLICY.derivationImplemented).toBe(false);
+    expect(SIGNET_TEST_COMPATIBLE_BIP84_POLICY.derivationImplemented).toBe(true);
     expect(SIGNET_TEST_COMPATIBLE_BIP84_POLICY.passphraseSupported).toBe(false);
   });
 });
