@@ -3623,19 +3623,6 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:npm/argparse@1.0.10",
-      "name": "argparse",
-      "version": "1.0.10",
-      "purl": "pkg:npm/argparse@1.0.10",
-      "hashes": [
-        {
-          "alg": "SHA-512",
-          "content": "o5Roy6tNG4SL/FOkCAN6RzjiakZS25RLYFrcMttJqbdd8BWrnA+fGz57iN5Pb06pvBGvl5gQ0B48dJlslXvoTg=="
-        }
-      ]
-    },
-    {
-      "type": "library",
       "bom-ref": "pkg:npm/argparse@2.0.1",
       "name": "argparse",
       "version": "2.0.1",
@@ -7211,27 +7198,14 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:npm/js-yaml@3.15.1",
+      "bom-ref": "pkg:npm/js-yaml@4.3.1",
       "name": "js-yaml",
-      "version": "3.15.1",
-      "purl": "pkg:npm/js-yaml@3.15.1",
+      "version": "4.3.1",
+      "purl": "pkg:npm/js-yaml@4.3.1",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "S99WuO3HlhO3XN41EtYUNl9zzXjoJx7QvmipxsJVxtCBT0YHEFy+iOJhjSvrmV12nYhWpZaM8lPHkJm0yUMbag=="
-        }
-      ]
-    },
-    {
-      "type": "library",
-      "bom-ref": "pkg:npm/js-yaml@4.1.1",
-      "name": "js-yaml",
-      "version": "4.1.1",
-      "purl": "pkg:npm/js-yaml@4.1.1",
-      "hashes": [
-        {
-          "alg": "SHA-512",
-          "content": "qQKT4zQxXl8lLwBtHMWwaTcGfFOZviOJet3Oy/xmGk2gZH677CJM9EvtfdSkgWcATZhj/55JZ0rmy3myCT5lsA=="
+          "content": "CY6crGq313MX8GkwvB7tzgp99vjQxY1++5y10/BKN/GUfHqWaOGQMNZkBvqSzsZKWk/ijwHlWzzkLulsGHhjWQ=="
         }
       ]
     },
@@ -9096,19 +9070,6 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:npm/qs@6.14.2",
-      "name": "qs",
-      "version": "6.14.2",
-      "purl": "pkg:npm/qs@6.14.2",
-      "hashes": [
-        {
-          "alg": "SHA-512",
-          "content": "V/yCWTTF7VJ9hIh18Ugr2zhJMP01MY7c5kh4J870L7imm6/DIzBsNLTXzMwUA3yZ5b/KBqLx8Kp3uRvd7xSe3Q=="
-        }
-      ]
-    },
-    {
-      "type": "library",
       "bom-ref": "pkg:npm/qs@6.15.3",
       "name": "qs",
       "version": "6.15.3",
@@ -10136,19 +10097,6 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:npm/sprintf-js@1.0.3",
-      "name": "sprintf-js",
-      "version": "1.0.3",
-      "purl": "pkg:npm/sprintf-js@1.0.3",
-      "hashes": [
-        {
-          "alg": "SHA-512",
-          "content": "D9cPgkvLlV3t3IzL0D0YLvGA9Ahk4PcvVwUbN0dSGr1aP0Nrt4AEnTUbuGvquEC0mA64Gqt1fzirlRs5ibXx8g=="
-        }
-      ]
-    },
-    {
-      "type": "library",
       "bom-ref": "pkg:npm/sqlstring@2.3.3",
       "name": "sqlstring",
       "version": "2.3.3",
@@ -10916,14 +10864,14 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:npm/uuid@7.0.3",
+      "bom-ref": "pkg:npm/uuid@11.1.1",
       "name": "uuid",
-      "version": "7.0.3",
-      "purl": "pkg:npm/uuid@7.0.3",
+      "version": "11.1.1",
+      "purl": "pkg:npm/uuid@11.1.1",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "DPSke0pXhTZgoF/d+WSt2QaKMCFSfx7QegxEWT+JOuHF5aWrKEn0G+ztjuJg/gG8/ItK+rbPCD/yNv8yyih6Cg=="
+          "content": "vIYxrBCC/N/K+Js3qSN88go7kIfNPssr/hHCesKCQNAjmgvYS2oqr69kIufEG+O4+PfezOH4EbIeHCfFov8ZgQ=="
         }
       ]
     },
@@ -12707,7 +12655,7 @@
       "dependsOn": [
         "pkg:npm/%40babel/code-frame@7.27.1",
         "pkg:npm/chalk@4.1.2",
-        "pkg:npm/js-yaml@4.1.1"
+        "pkg:npm/js-yaml@4.3.1"
       ]
     },
     {
@@ -12720,7 +12668,7 @@
         "pkg:npm/camelcase@5.3.1",
         "pkg:npm/find-up@4.1.0",
         "pkg:npm/get-package-type@0.1.0",
-        "pkg:npm/js-yaml@3.15.1",
+        "pkg:npm/js-yaml@4.3.1",
         "pkg:npm/resolve-from@5.0.0"
       ]
     },
@@ -13528,12 +13476,6 @@
     {
       "ref": "pkg:npm/arg@5.0.2",
       "dependsOn": []
-    },
-    {
-      "ref": "pkg:npm/argparse@1.0.10",
-      "dependsOn": [
-        "pkg:npm/sprintf-js@1.0.3"
-      ]
     },
     {
       "ref": "pkg:npm/argparse@2.0.1",
@@ -14756,7 +14698,7 @@
         "pkg:npm/parseurl@1.3.3",
         "pkg:npm/path-to-regexp@0.1.13",
         "pkg:npm/proxy-addr@2.0.7",
-        "pkg:npm/qs@6.14.2",
+        "pkg:npm/qs@6.15.3",
         "pkg:npm/range-parser@1.2.1",
         "pkg:npm/safe-buffer@5.2.1",
         "pkg:npm/send@0.19.2",
@@ -15347,14 +15289,7 @@
       "dependsOn": []
     },
     {
-      "ref": "pkg:npm/js-yaml@3.15.1",
-      "dependsOn": [
-        "pkg:npm/argparse@1.0.10",
-        "pkg:npm/esprima@4.0.1"
-      ]
-    },
-    {
-      "ref": "pkg:npm/js-yaml@4.1.1",
+      "ref": "pkg:npm/js-yaml@4.3.1",
       "dependsOn": [
         "pkg:npm/argparse@2.0.1"
       ]
@@ -16211,12 +16146,6 @@
       "dependsOn": []
     },
     {
-      "ref": "pkg:npm/qs@6.14.2",
-      "dependsOn": [
-        "pkg:npm/side-channel@1.1.1"
-      ]
-    },
-    {
       "ref": "pkg:npm/qs@6.15.3",
       "dependsOn": [
         "pkg:npm/es-define-property@1.0.1",
@@ -16756,10 +16685,6 @@
       "dependsOn": []
     },
     {
-      "ref": "pkg:npm/sprintf-js@1.0.3",
-      "dependsOn": []
-    },
-    {
       "ref": "pkg:npm/sqlstring@2.3.3",
       "dependsOn": []
     },
@@ -17102,7 +17027,7 @@
       "dependsOn": []
     },
     {
-      "ref": "pkg:npm/uuid@7.0.3",
+      "ref": "pkg:npm/uuid@11.1.1",
       "dependsOn": []
     },
     {
@@ -17197,7 +17122,7 @@
       "ref": "pkg:npm/xcode@3.0.1",
       "dependsOn": [
         "pkg:npm/simple-plist@1.3.1",
-        "pkg:npm/uuid@7.0.3"
+        "pkg:npm/uuid@11.1.1"
       ]
     },
     {
