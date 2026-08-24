@@ -12,10 +12,17 @@ import * as btc from "@scure/btc-signer";
  * parser, que só lê e valida estrutura.
  */
 
+export type ParsedPsbtOutput = {
+  /** Valor em satoshis. Sempre cabe com folga em Number (limite: 21_000_000 BTC = 2.1e15 sats). */
+  amountSats: number;
+  address: string;
+};
+
 export type ParsedPsbtSummary = {
   version: number;
   inputCount: number;
   outputCount: number;
+  outputs: ParsedPsbtOutput[];
 };
 
 function decodePsbtBytes(base64OrHex: string): Uint8Array {
@@ -26,17 +33,38 @@ function decodePsbtBytes(base64OrHex: string): Uint8Array {
 }
 
 /**
- * Faz o parse de um PSBT (base64 ou hex) e devolve um resumo público mínimo.
- * Lança erro claro para qualquer payload malformado ou fora de especificação
- * — isso é o comportamento correto (recusa), não uma falha.
+ * Faz o parse de um PSBT (base64 ou hex) e devolve um resumo público mínimo,
+ * incluindo destinatário e valor de cada output — a informação que o
+ * threat model exige mostrar ao usuário antes de qualquer assinatura futura
+ * (F3: "destinatário, valor, taxa"). Lança erro claro para qualquer payload
+ * malformado ou fora de especificação — isso é o comportamento correto
+ * (recusa), não uma falha. Se um output tiver um script não endereçável
+ * (ex: OP_RETURN), o endereço fica como null em vez de lançar erro.
  */
 export function parsePublicTestPsbt(base64OrHex: string): ParsedPsbtSummary {
   const bytes = decodePsbtBytes(base64OrHex);
   const tx = btc.Transaction.fromPSBT(bytes);
 
+  const outputs: ParsedPsbtOutput[] = [];
+  for (let i = 0; i < tx.outputsLength; i++) {
+    const output = tx.getOutput(i);
+    let address = "";
+    try {
+      address = btc.Address(btc.NETWORK).encode(btc.OutScript.decode(output.script ?? new Uint8Array()));
+    } catch {
+      address = ""; // script não endereçável (ex: OP_RETURN) — não é erro de parsing
+    }
+
+    outputs.push({
+      amountSats: Number(output.amount ?? 0n),
+      address,
+    });
+  }
+
   return {
     version: tx.version,
     inputCount: tx.inputsLength,
     outputCount: tx.outputsLength,
+    outputs,
   };
 }

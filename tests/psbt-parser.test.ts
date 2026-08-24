@@ -16,7 +16,15 @@ describe("parsePublicTestPsbt — vetores VÁLIDOS do BIP-174", () => {
 
     const result = parsePublicTestPsbt(b64);
 
-    expect(result).toEqual({ version: 2, inputCount: 1, outputCount: 2 });
+    expect(result).toEqual({
+      version: 2,
+      inputCount: 1,
+      outputCount: 2,
+      outputs: [
+        { address: "1L2tGENeoh4mSoiUZrSbs1J3jazSdJH9QS", amountSats: 99999699 },
+        { address: "36YhUacEtcnkfhSbxwm11wDCexLGBLgJF6", amountSats: 100000000 },
+      ],
+    });
   });
 
   it("PSBT com 0 inputs", () => {
@@ -25,7 +33,15 @@ describe("parsePublicTestPsbt — vetores VÁLIDOS do BIP-174", () => {
 
     const result = parsePublicTestPsbt(b64);
 
-    expect(result).toEqual({ version: 2, inputCount: 0, outputCount: 2 });
+    expect(result).toEqual({
+      version: 2,
+      inputCount: 0,
+      outputCount: 2,
+      outputs: [
+        { address: "1L2tGENeoh4mSoiUZrSbs1J3jazSdJH9QS", amountSats: 99999699 },
+        { address: "36YhUacEtcnkfhSbxwm11wDCexLGBLgJF6", amountSats: 100000000 },
+      ],
+    });
   });
 
   it("PSBT com transação global de 0 inputs e 0 outputs", () => {
@@ -35,7 +51,7 @@ describe("parsePublicTestPsbt — vetores VÁLIDOS do BIP-174", () => {
 
     // A própria transação embutida no vetor tem version=0 (caso degenerado
     // deliberado do BIP, não um valor típico de transação real).
-    expect(result).toEqual({ version: 0, inputCount: 0, outputCount: 0 });
+    expect(result).toEqual({ version: 0, inputCount: 0, outputCount: 0, outputs: [] });
   });
 
   it("PSBT com tipos desconhecidos nos inputs (deve aceitar e preservar)", () => {
@@ -44,7 +60,15 @@ describe("parsePublicTestPsbt — vetores VÁLIDOS do BIP-174", () => {
 
     const result = parsePublicTestPsbt(b64);
 
-    expect(result).toEqual({ version: 2, inputCount: 1, outputCount: 1 });
+    // Output com script não padrão (não decodifica pra endereço) — vem
+    // com address vazio em vez de lançar erro, já que o parsing em si
+    // funcionou corretamente.
+    expect(result).toEqual({
+      version: 2,
+      inputCount: 1,
+      outputCount: 1,
+      outputs: [{ address: "", amountSats: 0 }],
+    });
   });
 });
 
