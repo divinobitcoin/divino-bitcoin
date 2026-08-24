@@ -35,6 +35,7 @@
     "@react-navigation/native": "^7.3.17",
     "@scure/bip32": "2.3.0",
     "@scure/bip39": "2.3.0",
+    "@scure/btc-signer": "^2.3.0",
     "@tanstack/react-query": "^5.90.12",
     "@trpc/client": "11.8.0",
     "@trpc/react-query": "11.8.0",

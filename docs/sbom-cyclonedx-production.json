@@ -3077,6 +3077,19 @@
     },
     {
       "type": "library",
+      "bom-ref": "pkg:npm/%40scure/btc-signer@2.3.0",
+      "name": "@scure/btc-signer",
+      "version": "2.3.0",
+      "purl": "pkg:npm/%40scure/btc-signer@2.3.0",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "05oEjx2l4VhT+CBGKqGqE+4R2n+XN7+z+vC5I0edzymHfmTZ8nrHvl0WGgPVaNPkOg/+elEhIB1gRROkunxCRg=="
+        }
+      ]
+    },
+    {
+      "type": "library",
       "bom-ref": "pkg:npm/%40sinclair/typebox@0.27.8",
       "name": "@sinclair/typebox",
       "version": "0.27.8",
@@ -8095,6 +8108,19 @@
     },
     {
       "type": "library",
+      "bom-ref": "pkg:npm/micro-packed@0.11.0",
+      "name": "micro-packed",
+      "version": "0.11.0",
+      "purl": "pkg:npm/micro-packed@0.11.0",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "rq9RzPpmlgt3YaW2RrtCG9Q2iydX2+KZnL/Vhik8KKdsKwR5FvLXJzqp5IhXqD67XjYeZEMCrG6B28Mq9uC8Tw=="
+        }
+      ]
+    },
+    {
+      "type": "library",
       "bom-ref": "pkg:npm/micromatch@4.0.8",
       "name": "micromatch",
       "version": "4.0.8",
@@ -11267,6 +11293,7 @@
         "pkg:npm/%40react-navigation/native@7.3.17",
         "pkg:npm/%40scure/bip32@2.3.0",
         "pkg:npm/%40scure/bip39@2.3.0",
+        "pkg:npm/%40scure/btc-signer@2.3.0",
         "pkg:npm/%40tanstack/react-query@5.90.12",
         "pkg:npm/%40trpc/client@11.8.0",
         "pkg:npm/%40trpc/react-query@11.8.0",
@@ -13244,6 +13271,15 @@
       "ref": "pkg:npm/%40scure/bip39@2.3.0",
       "dependsOn": [
         "pkg:npm/%40noble/hashes@2.3.0"
+      ]
+    },
+    {
+      "ref": "pkg:npm/%40scure/btc-signer@2.3.0",
+      "dependsOn": [
+        "pkg:npm/%40noble/curves@2.3.0",
+        "pkg:npm/%40noble/hashes@2.3.0",
+        "pkg:npm/%40scure/base@2.3.0",
+        "pkg:npm/micro-packed@0.11.0"
       ]
     },
     {
@@ -15726,6 +15762,12 @@
         "pkg:npm/throat@5.0.0",
         "pkg:npm/ws@7.5.13",
         "pkg:npm/yargs@17.7.2"
+      ]
+    },
+    {
+      "ref": "pkg:npm/micro-packed@0.11.0",
+      "dependsOn": [
+        "pkg:npm/%40scure/base@2.3.0"
       ]
     },
     {
