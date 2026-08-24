@@ -4,7 +4,7 @@ import {
   type BitcoinDevelopmentNetwork,
 } from "./bitcoin-network";
 
-export type OnchainSourceKind = "electrum" | "esplora";
+export type OnchainSourceKind = "electrum" | "esplora" | "bitcoin-core-rpc";
 export type OnchainSourceStatus = "not-configured" | "planned";
 
 export type SignetOnchainSource = {
@@ -28,6 +28,7 @@ export type SignetOnchainSourcePlan = {
 const SOURCE_LABELS: Record<OnchainSourceKind, string> = {
   electrum: "Servidor Electrum configurável",
   esplora: "API Esplora configurável",
+  "bitcoin-core-rpc": "Nó Bitcoin Core próprio (RPC local, leitura via scantxoutset)",
 };
 
 /**
@@ -67,4 +68,37 @@ export function assertLiveOnchainEnabled(plan: SignetOnchainSourcePlan): void {
   throw new Error(
     "A fonte on-chain real ainda não está ativada. Nenhuma sincronização, broadcast ou operação com fundos foi iniciada.",
   );
+}
+
+/**
+ * Descreve a opção "nó próprio via RPC" (avaliada e aprovada como parte da
+ * estratégia "combinação configurável" em signet-architecture-decision-brief.md).
+ * Aditiva e opt-in: não substitui primary/fallback (electrum/esplora),
+ * apenas descreve mais uma fonte que pode ser adicionada ao plano. A
+ * capacidade de leitura real já existe em shared/bitcoin-core-rpc-client.ts
+ * — esta função só documenta a opção dentro do sistema de planos, sem
+ * ativar liveSyncEnabled.
+ */
+export function describeOwnNodeSource(): SignetOnchainSource {
+  return {
+    id: "bitcoin-core-rpc",
+    label: SOURCE_LABELS["bitcoin-core-rpc"],
+    status: "not-configured",
+    endpoint: null,
+  };
+}
+
+/**
+ * Retorna um NOVO plano com uma fonte adicional anexada, sem alterar o
+ * plano original nem o comportamento já testado de
+ * createSignetOnchainSourcePlan. Puro e imutável.
+ */
+export function withAdditionalSource(
+  plan: SignetOnchainSourcePlan,
+  source: SignetOnchainSource,
+): SignetOnchainSourcePlan {
+  return {
+    ...plan,
+    sources: [...plan.sources, source],
+  };
 }
