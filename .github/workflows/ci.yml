@@ -1,0 +1,70 @@
+name: CI
+
+# O CI faz parte do perimetro de custodia (threat-model.md secao 7) e e alvo
+# explicito de ameaca (T5 adulteracao de cadeia de fornecimento, T13 invasor de
+# CI). Por isso:
+#   - actions fixadas por hash de commit, nunca por tag (tag pode ser movida);
+#   - permissoes minimas e explicitas;
+#   - nenhum secret e consumido por este workflow;
+#   - credenciais de checkout nao sao persistidas no runner;
+#   - pnpm vem do corepack em vez de uma action de terceiro, reduzindo em uma
+#     a quantidade de fornecedores no caminho do build.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Verificacao completa
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+
+      - name: Node 22
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22.22.1
+
+      - name: Ativar pnpm via corepack
+        run: |
+          corepack enable
+          corepack prepare pnpm@9.12.0 --activate
+          pnpm --version
+
+      - name: Instalar dependencias (lockfile congelado)
+        run: pnpm install --frozen-lockfile
+
+      - name: Verificacao de tipos
+        run: pnpm check
+
+      - name: Testes
+        run: pnpm test
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: SBOM esta atualizado
+        # O gerador e deterministico por desenho (serialNumber fixo). Se a
+        # regeneracao produzir diferenca, o SBOM commitado nao corresponde ao
+        # lockfile atual.
+        run: |
+          pnpm sbom:prod
+          git diff --exit-code -- docs/sbom-cyclonedx-production.json
+
+      - name: Aceitacao de risco de dependencias
+        run: node scripts/audit-against-baseline.mjs

@@ -1,0 +1,43 @@
+{
+  "_sobre": "Registro formal de aceitação de risco de dependências, exigido pelo gate 1 da ADR-0001 ('nenhuma vulnerabilidade crítica ou alta sem remediação/justificativa formal'). Este arquivo é aplicado pelo CI: qualquer vulnerabilidade de produção que não conste aqui reprova o build, e qualquer entrada expirada ou obsoleta também reprova. A justificativa deixa de viver em mensagem de commit e passa a ser documento versionado e verificável.",
+  "_revisao": {
+    "revisadoEm": "2026-08-24",
+    "cadenciaMaximaDias": 90,
+    "responsavel": "proprietario",
+    "observacao": "A cadência de 90 dias é mais estrita que os 6 meses máximos previstos em threat-model.md secao 10, por se tratar especificamente de superfície de dependências."
+  },
+  "aceitas": [
+    {
+      "ghsa": "GHSA-w3rx-r6r6-pgpr",
+      "cve": "CVE-2025-71330",
+      "pacote": "image-size",
+      "severidade": "high",
+      "titulo": "Parser ICNS permite negacao de servico por laco infinito",
+      "versaoCorrigida": null,
+      "expiraEm": "2026-11-22",
+      "justificativa": "Nao existe versao corrigida publicada. O campo 'patched_versions' do aviso e '<0.0.0', ou seja, nenhuma versao do pacote corrige a falha ate o momento. A dependencia entra pela cadeia @expo/metro-runtime > expo > @expo/cli > metro, que e ferramental de bundling.",
+      "alcancabilidade": {
+        "afirmacao": "Nao alcancavel no artefato distribuido: o Metro e bundler de build, nao componente de runtime do APK.",
+        "status": "NAO_VERIFICADO",
+        "comoVerificar": "Inspecao do bundle de producao, ausencia dos simbolos do image-size no artefato final. Esse teste ainda nao existe; esta previsto na defesa em camadas discutida no DB-001.",
+        "observacao": "Enquanto o status for NAO_VERIFICADO, esta afirmacao e hipotese do implementador, nao fato normativo."
+      }
+    },
+    {
+      "ghsa": "GHSA-5p2g-fcmc-qvqq",
+      "cve": "CVE-2025-71329",
+      "pacote": "image-size",
+      "severidade": "high",
+      "titulo": "Parsers JXL e HEIF permitem negacao de servico por lacos infinitos",
+      "versaoCorrigida": null,
+      "expiraEm": "2026-11-22",
+      "justificativa": "Mesma origem, mesmo pacote e mesma ausencia de correcao upstream do aviso anterior.",
+      "alcancabilidade": {
+        "afirmacao": "Nao alcancavel no artefato distribuido: o Metro e bundler de build, nao componente de runtime do APK.",
+        "status": "NAO_VERIFICADO",
+        "comoVerificar": "Inspecao do bundle de producao, ausencia dos simbolos do image-size no artefato final. Esse teste ainda nao existe; esta previsto na defesa em camadas discutida no DB-001.",
+        "observacao": "Enquanto o status for NAO_VERIFICADO, esta afirmacao e hipotese do implementador, nao fato normativo."
+      }
+    }
+  ]
+}
