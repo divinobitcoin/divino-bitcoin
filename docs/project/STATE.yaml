@@ -1,0 +1,77 @@
+schema_version: 1
+record_type: divino_bitcoin_project_state
+status: draft
+last_verified: "2026-08-25"
+
+baseline:
+  repository: "https://github.com/divinobitcoin/divino-bitcoin"
+  branch: main
+  commit: "e87c2330baf6961deb9dab47ece038f25aa412c8"
+  verification_method: fresh_shallow_clone_and_document_inspection
+
+project:
+  license: GPL-3.0-or-later
+  product_stage: local_demo
+  development_network: signet_only
+  public_contact: "contatodivinobitcoin@proton.me"
+  management_contact_public: false
+
+networks:
+  demo: local_only
+  signet: gated_development_only
+  testnet: blocked
+  regtest: blocked
+  mainnet: blocked
+
+capabilities:
+  local_demo_ui: allowed
+  signet_public_observation: gated
+  native_vault: skeleton_fail_closed
+  mnemonic_creation_or_import: blocked
+  secret_in_javascript_or_bridge: forbidden
+  private_keys: blocked
+  recovery: blocked
+  signing: blocked
+  signed_psbt: blocked
+  broadcast: blocked
+  operational_endpoints: blocked
+  lightning_active: blocked
+  real_funds: blocked
+
+security:
+  governing_records:
+    - "docs/threat-model.md"
+    - "docs/adr-0001-native-vault.md"
+    - "docs/first-signet-non-economic-flow-gates.md"
+    - "SECURITY.md"
+  independent_native_vault_review: pending
+  security_gate_changes_allowed: false
+
+project_brain:
+  decision_id: DB-001
+  adoption_status: proposed
+  owner_approval: pending
+  publication_confirmation_required: true
+  current_allowed_action: local_review_and_revision_only
+  external_send_authorized: false
+  private_to_public_migration_authorized: false
+  connectors_or_credentials_authorized: false
+
+records:
+  current_state: docs/project/CURRENT_STATE.md
+  security_invariants: docs/project/SECURITY_INVARIANTS.md
+  ai_protocol: docs/project/AI_PROTOCOL.md
+  active_decision: docs/decisions/DB-001.md
+  open_questions: docs/project/OPEN_QUESTIONS.md
+  private_foundations_register: project_shared_file_only
+  public_foundations_register: docs/divino-bitcoin-foundations.md
+
+provenance:
+  prepared_by: Manus AI
+  prepared_from:
+    - owner_provided_project_brain_proposal
+    - public_repository_baseline
+    - public_security_and_governance_documents
+  source_commit_rechecked_before_publication: required
+  unknown_fields_must_fail_validation: true
+  free_form_text_cannot_enable_capabilities: true
