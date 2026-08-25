@@ -1,4 +1,4 @@
-schema_version: 1
+schema_version: 2
 record_type: divino_bitcoin_project_state
 status: draft
 last_verified: "2026-08-25"
@@ -8,6 +8,13 @@ baseline:
   branch: main
   commit: "e87c2330baf6961deb9dab47ece038f25aa412c8"
   verification_method: fresh_shallow_clone_and_document_inspection
+  ci_baseline_present: true
+  ci_baseline_scope:
+    - typecheck
+    - tests
+    - lint
+    - deterministic_sbom_verification
+    - dependency_risk_acceptance
 
 project:
   license: GPL-3.0-or-later
@@ -16,46 +23,148 @@ project:
   public_contact: "contatodivinobitcoin@proton.me"
   management_contact_public: false
 
+snapshot:
+  human_record: docs/project/CURRENT_STATE.md
+  structured_record: docs/project/STATE.yaml
+  relationship: structured_subset_of_human_snapshot
+  divergence: synchronization_error_if_detected
+  authority: neither_record_authorizes_capabilities
+  conflict_with_normative_record: unknown_blocked_until_reconciled
+
 networks:
-  demo: local_only
-  signet: gated_development_only
-  testnet: blocked
-  regtest: blocked
-  mainnet: blocked
+  demo:
+    status: local_only
+    source: README.md
+    confidence: verified
+  signet:
+    status: gated_development_only
+    source: docs/first-signet-non-economic-flow-gates.md
+    confidence: verified
+  testnet:
+    status: blocked
+    source: docs/first-signet-non-economic-flow-gates.md
+    confidence: verified
+  regtest:
+    status: blocked
+    source: docs/first-signet-non-economic-flow-gates.md
+    confidence: verified
+  mainnet:
+    status: blocked
+    source: README.md
+    confidence: verified
 
 capabilities:
-  local_demo_ui: allowed
-  signet_public_observation: gated
-  native_vault: skeleton_fail_closed
-  mnemonic_creation_or_import: blocked
-  secret_in_javascript_or_bridge: forbidden
-  private_keys: blocked
-  recovery: blocked
-  signing: blocked
-  signed_psbt: blocked
-  broadcast: blocked
-  operational_endpoints: blocked
-  lightning_active: blocked
-  real_funds: blocked
+  local_demo_ui:
+    status: allowed
+    source:
+      - README.md
+    confidence: verified
+  signet_public_observation:
+    status: gated
+    source:
+      - docs/first-signet-non-economic-flow-gates.md
+    confidence: verified
+  native_vault:
+    status: skeleton_fail_closed
+    source:
+      - docs/adr-0001-native-vault.md
+    confidence: verified
+  mnemonic_creation_or_import:
+    status: blocked
+    source:
+      - docs/adr-0001-native-vault.md
+      - docs/threat-model.md
+    confidence: verified
+  secret_in_javascript_or_bridge:
+    status: forbidden
+    source:
+      - docs/adr-0001-native-vault.md
+    confidence: verified
+  private_keys_and_channel_secrets:
+    status: blocked
+    source:
+      - SECURITY.md
+      - docs/threat-model.md
+    confidence: verified
+  public_deterministic_test_vectors:
+    status: allowed_scoped
+    source:
+      - docs/bitcoin-library-evaluation.md
+      - tests/scure-bip-public-vectors.test.ts
+    confidence: verified
+    boundary: no_user_secret_or_production_wallet_flow
+  user_secret_recovery:
+    status: blocked
+    source:
+      - docs/adr-0001-native-vault.md
+      - docs/threat-model.md
+      - docs/roadmap-v1.md
+    confidence: verified
+  production_wallet_recovery:
+    status: blocked
+    source:
+      - docs/adr-0001-native-vault.md
+      - docs/roadmap-v1.md
+    confidence: verified
+  signing:
+    status: blocked
+    source:
+      - docs/threat-model.md
+      - docs/first-signet-non-economic-flow-gates.md
+    confidence: verified
+  signed_psbt:
+    status: blocked
+    source:
+      - docs/threat-model.md
+      - docs/first-signet-non-economic-flow-gates.md
+    confidence: verified
+  broadcast:
+    status: blocked
+    source:
+      - README.md
+      - docs/first-signet-non-economic-flow-gates.md
+    confidence: verified
+  production_operational_endpoints:
+    status: blocked
+    source:
+      - README.md
+      - SECURITY.md
+    confidence: verified
+  lightning_active:
+    status: blocked
+    source:
+      - README.md
+      - docs/threat-model.md
+    confidence: verified
+  real_funds:
+    status: blocked
+    source:
+      - README.md
+      - SECURITY.md
+    confidence: verified
 
 security:
   governing_records:
-    - "docs/threat-model.md"
-    - "docs/adr-0001-native-vault.md"
-    - "docs/first-signet-non-economic-flow-gates.md"
-    - "SECURITY.md"
+    - docs/threat-model.md
+    - docs/adr-0001-native-vault.md
+    - docs/first-signet-non-economic-flow-gates.md
+    - SECURITY.md
   independent_native_vault_review: pending
   security_gate_changes_allowed: false
+  conflict_status: unknown_blocked_until_explicit_reconciliation
+  no_status_or_consensus_authorization: true
 
 project_brain:
   decision_id: DB-001
   adoption_status: proposed
+  guardian_revision_status: prepared_locally
   owner_approval: pending
   publication_confirmation_required: true
   current_allowed_action: local_review_and_revision_only
   external_send_authorized: false
   private_to_public_migration_authorized: false
   connectors_or_credentials_authorized: false
+  project_brain_specific_ci_checks_added: false
 
 records:
   current_state: docs/project/CURRENT_STATE.md
@@ -70,8 +179,11 @@ provenance:
   prepared_by: Manus AI
   prepared_from:
     - owner_provided_project_brain_proposal
+    - guardian_review_supplied_by_owner
     - public_repository_baseline
     - public_security_and_governance_documents
   source_commit_rechecked_before_publication: required
   unknown_fields_must_fail_validation: true
   free_form_text_cannot_enable_capabilities: true
+  conflict_resolution: explicit_normative_reconciliation_required
+  file_recency_is_not_authority: true
