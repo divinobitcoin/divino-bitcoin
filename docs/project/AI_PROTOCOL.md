@@ -1,6 +1,6 @@
 # Divino Bitcoin — AI Collaboration Protocol
 
-**Status:** `DRAFT — DB-001 pending owner approval and publication`
+**Status:** `DRAFT — Guardian revisions prepared; owner approval and republish decision pending`
 
 This protocol is neutral between Claude, ChatGPT, Manus, human contributors, and future tools. It defines how work is recorded; it does not delegate ownership, security approval, custody, or publication authority to an agent.
 
@@ -30,6 +30,14 @@ If a required file is missing, stale, contradictory, or unavailable, record the 
 | `NOT_VERIFIED` | The claim has not been checked against a stated source or reproducible evidence | Treat as an uncertainty, not a fact |
 
 A chat conclusion becomes project knowledge only when a versioned document records its scope, source, status, and evidence. A commit, label, CI result, or agent consensus does not silently elevate `DRAFT` to `APPROVED`.
+
+## Record authority and synchronization
+
+The six Project Brain records have distinct roles. `DB-001.md` is normative governance; `SECURITY_INVARIANTS.md` is normative only for traceable approved or explicitly proposed invariants; `AI_PROTOCOL.md` is normative process-only; `CURRENT_STATE.md` is descriptive for human readers; `STATE.yaml` is a structured subset of the same snapshot; and `OPEN_QUESTIONS.md` is informative and non-normative.
+
+`CURRENT_STATE.md` and `STATE.yaml` must describe the same verified snapshot. If they diverge, the result is a synchronization error and neither file wins. A conflict with an ADR, threat model, security gate, or other normative record is `UNKNOWN/BLOCKED` until explicit reconciliation. File recency is provenance, not authority.
+
+No status field, YAML value, AI consensus, review count, issue label, CI result, handoff, or commit message can by itself enable a security-sensitive capability. Authorization requires the applicable normative decision, documented gates, evidence, independent review where applicable, and explicit owner approval.
 
 ## Roles and independence
 
@@ -86,10 +94,10 @@ If a task mixes private and public material, separate the records first. Ask the
 
 ## Sensitive-change gate
 
-Before proposing a change involving the native vault, network selection, endpoint, dependency with security impact, mnemonic, seed, private key, recovery, signature, PSBT, broadcast, Lightning, release, permission, or public security claim, the agent must identify the governing decision, threat-model impact, negative tests, evidence required, rollback, review scope, and owner decision point. If any item is missing, leave the change `BLOCKED`.
+Before proposing a change involving the native vault, network selection, endpoint, dependency with security impact, mnemonic, seed, private key, user-secret or production recovery, signature, PSBT, broadcast, Lightning, release, permission, or public security claim, the agent must identify the governing decision, threat-model impact, negative tests, evidence required, rollback, review scope, and owner decision point. Public deterministic test vectors and laboratory experiments must remain explicitly scoped and must not be described as user-secret or production recovery. If any item is missing, leave the change `BLOCKED`.
 
 CI and automation may detect missing records and fail closed, but they must not be used as a substitute for human review, independent review, or owner authorization. No agent may create or use a connector, credential, external account, or operational endpoint as an implicit implementation shortcut.
 
 ## Conflict handling
 
-When this protocol conflicts with a repository document, a security gate, or a direct owner instruction, record the conflict and pause. Do not resolve a high-impact conflict by choosing the fastest path. The owner must decide the exact scope, and the decision record must retain the rejected alternatives and reason.
+When this protocol conflicts with a repository document, a security gate, or a direct owner instruction, record the conflict as `UNKNOWN/BLOCKED` and pause. Do not resolve a high-impact conflict by choosing the fastest path, the newest file, a YAML value, a label, a CI result, or agent consensus. The owner must decide the exact scope, and the decision record must retain the rejected alternatives, reason, evidence, and residual risk.
