@@ -23,7 +23,7 @@ export function useAuth(options?: UseAuthOptions) {
       if (Platform.OS === "web") {
         console.log("[useAuth] Web platform: fetching user from API...");
         const apiUser = await Api.getMe();
-        console.log("[useAuth] API user response:", apiUser);
+        console.log("[useAuth] API user lookup completed", { hasUser: Boolean(apiUser) });
 
         if (apiUser) {
           const userInfo: Auth.User = {
@@ -37,7 +37,7 @@ export function useAuth(options?: UseAuthOptions) {
           setUser(userInfo);
           // Cache user info in localStorage for faster subsequent loads
           await Auth.setUserInfo(userInfo);
-          console.log("[useAuth] Web user set from API:", userInfo);
+          console.log("[useAuth] Web user state updated");
         } else {
           console.log("[useAuth] Web: No authenticated user from API");
           setUser(null);
@@ -49,10 +49,9 @@ export function useAuth(options?: UseAuthOptions) {
       // Native platform: use token-based auth
       console.log("[useAuth] Native platform: checking for session token...");
       const sessionToken = await Auth.getSessionToken();
-      console.log(
-        "[useAuth] Session token:",
-        sessionToken ? `present (${sessionToken.substring(0, 20)}...)` : "missing",
-      );
+      console.log("[useAuth] Native session lookup completed", {
+        hasSession: Boolean(sessionToken),
+      });
       if (!sessionToken) {
         console.log("[useAuth] No session token, setting user to null");
         setUser(null);
@@ -61,7 +60,7 @@ export function useAuth(options?: UseAuthOptions) {
 
       // Use cached user info for native (token validates the session)
       const cachedUser = await Auth.getUserInfo();
-      console.log("[useAuth] Cached user:", cachedUser);
+      console.log("[useAuth] Cached user lookup completed", { hasUser: Boolean(cachedUser) });
       if (cachedUser) {
         console.log("[useAuth] Using cached user info");
         setUser(cachedUser);
@@ -71,7 +70,7 @@ export function useAuth(options?: UseAuthOptions) {
       }
     } catch (err) {
       const error = err instanceof Error ? err : new Error("Failed to fetch user");
-      console.error("[useAuth] fetchUser error:", error);
+      console.error("[useAuth] User lookup failed");
       setError(error);
       setUser(null);
     } finally {
@@ -84,7 +83,7 @@ export function useAuth(options?: UseAuthOptions) {
     try {
       await Api.logout();
     } catch (err) {
-      console.error("[Auth] Logout API call failed:", err);
+      console.error("[Auth] Logout API call failed");
       // Continue with logout even if API call fails
     } finally {
       await Auth.removeSessionToken();
@@ -106,7 +105,9 @@ export function useAuth(options?: UseAuthOptions) {
       } else {
         // Native: check for cached user info first for faster initial load
         Auth.getUserInfo().then((cachedUser) => {
-          console.log("[useAuth] Native cached user check:", cachedUser);
+          console.log("[useAuth] Native cached user lookup completed", {
+            hasUser: Boolean(cachedUser),
+          });
           if (cachedUser) {
             console.log("[useAuth] Native: setting cached user immediately");
             setUser(cachedUser);
@@ -124,11 +125,11 @@ export function useAuth(options?: UseAuthOptions) {
   }, [autoFetch, fetchUser]);
 
   useEffect(() => {
-    console.log("[useAuth] State updated:", {
-      hasUser: !!user,
+    console.log("[useAuth] State updated", {
+      hasUser: Boolean(user),
       loading,
       isAuthenticated,
-      error: error?.message,
+      hasError: Boolean(error),
     });
   }, [user, loading, isAuthenticated, error]);
 
