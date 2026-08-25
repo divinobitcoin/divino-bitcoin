@@ -129,7 +129,7 @@ export default function OAuthCallback() {
 
           // Store user info if available
           if (result.user) {
-                          console.log("[OAuth] User profile received");
+            console.log("[OAuth] User profile received");
 
             const userInfo: Auth.User = {
               id: result.user.id,
