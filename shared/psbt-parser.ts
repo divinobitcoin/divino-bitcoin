@@ -49,9 +49,10 @@ function getAddressNetwork(network: PsbtNetwork): typeof btc.NETWORK {
  * comportamento correto (recusa), não uma falha. Se um output tiver um
  * script não endereçável (ex: OP_RETURN), o endereço fica como "".
  *
- * A rede é deliberadamente obrigatória. `mainnet` existe apenas para os
- * vetores públicos do BIP-174; o aplicativo em desenvolvimento continua
- * restrito a Signet e não deve chamar este parser com dados operacionais.
+ * A rede é deliberadamente obrigatória. Os testes atuais usam `mainnet`
+ * somente para vetores públicos do BIP-174; o parser não impõe esse limite
+ * de uso. O aplicativo em desenvolvimento continua restrito a Signet e não
+ * deve chamar este parser com dados operacionais.
  */
 export function parsePublicTestPsbt(
   base64OrHex: string,

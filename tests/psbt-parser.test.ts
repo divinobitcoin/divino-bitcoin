@@ -124,3 +124,17 @@ describe("parsePublicTestPsbt — contrato explícito de rede", () => {
     );
   });
 });
+
+
+describe("parsePublicTestPsbt — distinção SegWit por rede", () => {
+  const p2wpkhPsbt =
+    "cHNidP8BAgQCAAAAAQQBAAEFAQEB+wQCAAAAAAEDCOgDAAAAAAAAAQQWABTAzrzWw9PKjHXcXsYuvlUzDvkQ4gA=";
+
+  it("codifica o mesmo witness output como bc1 em Mainnet e tb1 em Signet", () => {
+    const mainnetResult = parsePublicTestPsbt(p2wpkhPsbt, "mainnet");
+    const signetResult = parsePublicTestPsbt(p2wpkhPsbt, "signet");
+
+    expect(mainnetResult.outputs[0]?.address).toBe("bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu");
+    expect(signetResult.outputs[0]?.address).toBe("tb1qcr8te4kr609gcawutmrza0j4xv80jy8zmfp6l0");
+  });
+});

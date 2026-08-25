@@ -8,6 +8,7 @@ const runtimeFiles = [
   "lib/_core/api.ts",
   "lib/_core/auth.ts",
   "hooks/use-auth.ts",
+  "server/_core/oauth.ts",
 ] as const;
 
 const sensitiveNames = new Set([
