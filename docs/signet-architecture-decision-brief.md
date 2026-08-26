@@ -5,9 +5,19 @@
 
 ## Decisão aprovada pelo proprietário
 
-Em 20 de agosto de 2026, o proprietário selecionou a combinação **C, C, A, A**. O primeiro caminho on-chain será uma fonte combinada e configurável, sem endpoint público pré-definido. Lightning será adiado até que a base on-chain Signet, os vetores BIP, o cofre nativo e os controles de recuperação tenham sido validados. A primeira versão não oferecerá passphrase BIP-39. O pré-lançamento terá escopo de uso pessoal.
+Em 20 de agosto de 2026, o proprietário selecionou a combinação **C, C, A, A**. O primeiro caminho on-chain será uma fonte combinada e configurável, sem endpoint público pré-definido. Lightning será adiado até que a base on-chain Signet, os vetores BIP, o cofre nativo e os controles de recuperação tenham sido validados. A primeira versão não oferecerá passphrase BIP-39. O pré-lançamento terá escopo de uso pessoal — **revisado em 26 de agosto de 2026 para grupo fechado; ver emenda abaixo**.
 
 Essas escolhas não autorizam conexão a serviços de cadeia, geração ou importação de mnemonic, derivação de chaves, construção/assinatura de PSBT ou transmissão. O próximo marco limita-se a contratos locais, vetores públicos e testes determinísticos.
+
+## Emenda de 26 de agosto de 2026 — público de pré-lançamento
+
+**Decisão revisada:** o público de pré-lançamento passa de **uso pessoal** para **grupo fechado**. Ambas as categorias já constavam como alternativas mapeadas na tabela "Decisões que não podem ser inferidas automaticamente" deste documento; esta emenda apenas seleciona a segunda em vez da primeira.
+
+**Motivo declarado pelo proprietário:** existe um grupo pequeno de pessoas de confiança, conscientes do caráter experimental e sem valor econômico do projeto, sem capacidade de auditoria formal, mas capazes de ajudar a identificar falhas de uso real.
+
+**Pré-condição explícita antes de qualquer distribuição a esse grupo:** a carteira precisa estar em estado testável — interface Signet funcional e cofre nativo com os cinco critérios fail-closed verificados em aparelho, conforme `docs/decisions/P3-01-VERIFICACAO-COFRE-NATIVO.md`. Esta emenda **não** autoriza distribuição imediata; ela apenas atualiza o público-alvo para quando esse estado for atingido.
+
+**O que esta emenda não faz:** não adianta nenhum gate da ADR-0001 nem do `threat-model.md`, não autoriza Mainnet ou valor econômico, e não substitui auditoria externa independente antes do gate G5. Distribuir a um grupo fechado amplia a exposição a erro de uso real, mas não converte revisão informal em auditoria.
 
 ## Base de interoperabilidade e vetores públicos
 
