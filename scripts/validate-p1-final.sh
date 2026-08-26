@@ -88,6 +88,7 @@ fi
 run_required "pnpm test" pnpm test
 run_required "pnpm check" pnpm check
 run_required "pnpm lint" pnpm lint
+run_required "fronteira TEST/LAB" pnpm guard:lab-boundary
 run_required "teste direcionado: redaction OAuth" pnpm exec vitest run tests/oauth-log-redaction.test.ts
 run_required "teste direcionado: parser PSBT" pnpm exec vitest run tests/psbt-parser.test.ts
 run_required "teste de SBOM" pnpm exec vitest run tests/sbom-production.test.ts

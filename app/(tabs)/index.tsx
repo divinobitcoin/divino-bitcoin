@@ -2,6 +2,7 @@ import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useRouter } from "expo-router";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
+import { DemoStatusBanner } from "@/components/demo-status-banner";
 import { ScreenContainer } from "@/components/screen-container";
 import { TransactionRow } from "@/components/wallet/transaction-row";
 import { haptic } from "@/lib/haptics";
@@ -22,9 +23,9 @@ export default function WalletScreen() {
           <View><Text style={styles.eyebrow}>DIVINO BITCOIN</Text><Text style={styles.title}>Sua carteira</Text></View>
           <Pressable accessibilityRole="button" accessibilityLabel={state.settings.hideBalance ? "Mostrar saldo" : "Ocultar saldo"} onPress={() => { haptic.light(); void setHideBalance(!state.settings.hideBalance); }} style={({ pressed }) => [styles.iconButton, pressed && styles.pressed]}><MaterialIcons name={state.settings.hideBalance ? "visibility-off" : "visibility"} size={21} color="#374151" /></Pressable>
         </View>
-        <View style={styles.demoNotice}><MaterialIcons name="science" size={18} color="#085EAF" /><Text style={styles.demoNoticeText}>Modo de demonstração. Nenhum bitcoin real é movimentado.</Text></View>
+        <DemoStatusBanner />
         <View style={styles.balanceCard}>
-          <View style={styles.balanceHeader}><Text style={styles.balanceLabel}>Saldo disponível</Text><View style={styles.lightningPill}><MaterialIcons name="bolt" size={15} color="#0A84FF" /><Text style={styles.lightningText}>LIGHTNING</Text></View></View>
+          <View style={styles.balanceHeader}><Text style={styles.balanceLabel}>Saldo disponível</Text><View style={styles.lightningPill}><MaterialIcons name="bolt" size={15} color="#0A84FF" /><Text style={styles.lightningText}>LIGHTNING DEMO</Text></View></View>
           <Text style={styles.balance}>{balanceLabel}</Text><Text style={styles.balanceSubtext}>Dados locais de teste</Text>
         </View>
         <View style={styles.actions}>
@@ -33,7 +34,7 @@ export default function WalletScreen() {
         </View>
         <View style={styles.sectionHeader}><Text style={styles.sectionTitle}>Atividade recente</Text><Pressable onPress={() => router.push("/(tabs)/activity")} style={({ pressed }) => pressed && styles.pressed}><Text style={styles.linkText}>Ver tudo</Text></Pressable></View>
         <View style={styles.transactionCard}>{latestTransaction ? <TransactionRow transaction={latestTransaction} onPress={() => router.push(`/transaction/${latestTransaction.id}`)} /> : <Text style={styles.emptyText}>Nenhum movimento local ainda.</Text>}</View>
-        <View style={styles.protectionCard}><View style={styles.protectionIcon}><MaterialIcons name="shield" size={20} color="#16803A" /></View><View style={styles.protectionText}><Text style={styles.protectionTitle}>Segurança em primeiro lugar</Text><Text style={styles.protectionDescription}>Antes de receber fundos reais, conecte uma fonte Lightning auditada e revise as proteções.</Text></View></View>
+        <View style={styles.protectionCard}><View style={styles.protectionIcon}><MaterialIcons name="shield" size={20} color="#16803A" /></View><View style={styles.protectionText}><Text style={styles.protectionTitle}>Segurança em primeiro lugar</Text><Text style={styles.protectionDescription}>Nenhuma fonte externa está conectada. Saldos e movimentos desta tela são somente locais.</Text></View></View>
       </ScrollView>
     </ScreenContainer>
   );
@@ -43,7 +44,6 @@ const styles = StyleSheet.create({
   content: { gap: 20, padding: 20, paddingBottom: 32 }, topbar: { alignItems: "center", flexDirection: "row", justifyContent: "space-between", marginTop: 4 },
   eyebrow: { color: "#0A84FF", fontSize: 11, fontWeight: "800", letterSpacing: 1.1 }, title: { color: "#101828", fontSize: 29, fontWeight: "700", letterSpacing: -0.6, marginTop: 4 },
   iconButton: { alignItems: "center", backgroundColor: "#FFFFFF", borderColor: "#E5E7EB", borderRadius: 20, borderWidth: 1, height: 40, justifyContent: "center", width: 40 }, pressed: { opacity: 0.6 },
-  demoNotice: { alignItems: "center", backgroundColor: "#E6F4FE", borderRadius: 12, flexDirection: "row", gap: 8, padding: 12 }, demoNoticeText: { color: "#085EAF", flex: 1, fontSize: 13, fontWeight: "600", lineHeight: 18 },
   balanceCard: { backgroundColor: "#0D1117", borderRadius: 24, gap: 10, minHeight: 182, padding: 22 }, balanceHeader: { alignItems: "center", flexDirection: "row", justifyContent: "space-between" }, balanceLabel: { color: "#B9C3D0", fontSize: 14, fontWeight: "600" },
   lightningPill: { alignItems: "center", backgroundColor: "#E6F4FE", borderRadius: 99, flexDirection: "row", gap: 3, paddingHorizontal: 9, paddingVertical: 5 }, lightningText: { color: "#0A84FF", fontSize: 10, fontWeight: "800", letterSpacing: 0.6 },
   balance: { color: "#FFFFFF", fontSize: 35, fontVariant: ["tabular-nums"], fontWeight: "800", letterSpacing: -1.1, marginTop: 12 }, balanceSubtext: { color: "#8793A5", fontSize: 13 },

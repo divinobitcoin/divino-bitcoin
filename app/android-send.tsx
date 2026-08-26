@@ -5,10 +5,12 @@ import { useMemo, useState } from "react";
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { DemoStatusBanner } from "@/components/demo-status-banner";
 import { useWallet } from "@/lib/wallet-context";
+import { DEMO_PAYMENT_FIXTURE } from "@/shared/demo-fixtures";
 import { formatSats } from "@/shared/wallet";
 
-const DEMO_REFERENCE = "lnbc-demo-teste";
+const DEMO_REFERENCE = DEMO_PAYMENT_FIXTURE.reference;
 
 function parseSats(value: string): number {
   return Number(value.replace(/\D/g, ""));
@@ -18,7 +20,7 @@ export default function AndroidSendScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { isReady, payReference, state } = useWallet();
-  const [reference, setReference] = useState(DEMO_REFERENCE);
+  const [reference, setReference] = useState<string>(DEMO_REFERENCE);
   const [amount, setAmount] = useState("");
   const [memo, setMemo] = useState("");
   const [isReviewing, setIsReviewing] = useState(false);
@@ -129,12 +131,13 @@ export default function AndroidSendScreen() {
 
   return (
     <View style={styles.screen}>
-      <ScrollView contentContainerStyle={[styles.content, { paddingTop: insets.top + 18, paddingBottom: insets.bottom + 32 }]} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-        <Text accessibilityRole="button" onPress={() => router.back()} style={styles.backAction}>‹ Voltar à carteira</Text>
+<ScrollView contentContainerStyle={[styles.content, { paddingTop: insets.top + 18, paddingBottom: insets.bottom + 32 }]} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+          <Text accessibilityRole="button" onPress={() => router.back()} style={styles.backAction}>‹ Voltar à carteira</Text>
+        <DemoStatusBanner />
         <View style={styles.header}>
-          <Text style={styles.eyebrow}>MODO DE DEMONSTRAÇÃO</Text>
+          <Text style={styles.eyebrow}>FLUXO SEM REDE + SIMULAÇÃO LOCAL</Text>
           <Text style={styles.title}>Enviar</Text>
-          <Text style={styles.subtitle}>Simule um pagamento Lightning local. Nenhum bitcoin real é enviado.</Text>
+          <Text style={styles.subtitle}>Use a fixture local para simular um pagamento sem rede. Nenhum bitcoin real é enviado.</Text>
         </View>
 
         <View style={styles.balanceNotice}>
@@ -171,6 +174,8 @@ export default function AndroidSendScreen() {
               accessibilityRole="button"
               onPress={() => {
                 setReference(DEMO_REFERENCE);
+                setAmount(String(DEMO_PAYMENT_FIXTURE.amountSats));
+                setMemo(DEMO_PAYMENT_FIXTURE.memo);
                 setIsReferencePasted(false);
               }}
               style={styles.sampleAction}

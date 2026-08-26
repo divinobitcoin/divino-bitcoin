@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { DEMO_PAYMENT_FIXTURE } from "../shared/demo-fixtures";
 import { createDemoInvoice, createInitialWalletState, payDemoReference, settleDemoInvoice } from "../shared/wallet";
 
 describe("regras da carteira de demonstração", () => {
@@ -17,6 +18,15 @@ describe("regras da carteira de demonstração", () => {
     const initial = createInitialWalletState(); const result = payDemoReference(initial, "lnbc-demo-destino", initial.balanceSats, "Teste", new Date("2026-08-19T10:00:00.000Z"));
     expect(result.error).toBe("Saldo demonstrativo insuficiente para este pagamento."); expect(result.nextState.balanceSats).toBe(initial.balanceSats);
   });
+  it("aceita a fixture P2 e atualiza somente o saldo demonstrativo", () => {
+    const initial = createInitialWalletState();
+    const result = payDemoReference(initial, DEMO_PAYMENT_FIXTURE.reference, DEMO_PAYMENT_FIXTURE.amountSats, DEMO_PAYMENT_FIXTURE.memo, new Date("2026-08-19T10:00:00.000Z"));
+    expect(result.error).toBeUndefined();
+    expect(result.transaction?.reference).toBe(DEMO_PAYMENT_FIXTURE.reference);
+    expect(result.nextState.balanceSats).toBe(initial.balanceSats - 1_002);
+    expect(result.nextState.mode).toBe("demo");
+  });
+
   it("recusa referências que não parecem Lightning", () => {
     const result = payDemoReference(createInitialWalletState(), "bitcoin:abc", 1000, "Teste", new Date("2026-08-19T10:00:00.000Z"));
     expect(result.error).toBe("Use uma referência Lightning iniciada por ln.");
