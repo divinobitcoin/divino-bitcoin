@@ -4,7 +4,7 @@
 **Última revisão:** 20 de agosto de 2026  
 **Responsável:** Manus AI, sujeito a revisão comunitária e auditoria independente
 
-> **Regra de transição:** enquanto cada requisito deste documento não estiver implementado, testado, revisado e aprovado no gate correspondente, o Divino Bitcoin permanece em demonstração. Signet é o único perfil de desenvolvimento; Mainnet, seeds, chaves privadas, cofre de carteira, canais Lightning e pagamentos reais continuam desabilitados.
+> **Regra de transição:** enquanto cada requisito deste documento não estiver implementado, testado, revisado e aceito no gate correspondente, o build do Divino Bitcoin permanece em demonstração e não habilita segredos de cliente, valor econômico ou operação de produção. Signet é o perfil de desenvolvimento padrão. Engenharia, fixtures e testes de laboratório podem avançar antes da aceitação usando material descartável; Mainnet, fundos reais, recuperação do usuário, assinatura, broadcast, endpoints operacionais e Lightning econômico permanecem desabilitados no build atual.
 
 ## 1. Propósito e método
 
@@ -99,7 +99,7 @@ Minimização de metadados é requisito funcional. O design futuro deverá justi
 
 ### Lightning autocustodiado
 
-Lightning só entra após o cofre on-chain, assinatura e recuperação serem aceitos em Signet. A implementação deverá escolher uma biblioteca com manutenção e revisão adequadas, definir persistência segura de estado, backups estáticos de canal, monitoramento de *watchtower*, idempotência, limites, recuperação após interrupção e protocolo de fechamento. Nenhum provedor poderá deter chave de canal ou autorização de gasto. Bibliotecas como BDK e LDK são referências a avaliar, e não aprovação automática de arquitetura. [8] [9]
+O uso econômico de Lightning só entra após o cofre on-chain, assinatura e recuperação serem aceitos em Signet. A engenharia de Lightning pode começar antes disso em laboratório isolado, sem segredo de cliente, sem fundos reais e sem conceder custódia a provedor. A implementação deverá escolher uma biblioteca com manutenção e revisão adequadas, definir persistência segura de estado, backups estáticos de canal, monitoramento de *watchtower*, idempotência, limites, recuperação após interrupção e protocolo de fechamento. Nenhum provedor poderá deter chave de canal ou autorização de gasto. Bibliotecas como BDK e LDK são referências a avaliar, e não aprovação automática de arquitetura. [8] [9]
 
 ### Cadeia de fornecimento e atualização
 
@@ -120,7 +120,7 @@ O repositório GPL, o lockfile, a política de dependências, SBOM, revisão por
 
 Mesmo após os controles, o usuário pode perder seed, expor backup, confirmar uma fraude, usar um dispositivo comprometido ou depender de hardware e software com vulnerabilidades desconhecidas. Autocustódia desloca o poder e a responsabilidade para o usuário; o produto deve explicar isso sem linguagem enganosa ou promessa de recuperação impossível.
 
-As decisões que bloqueiam implementação incluem seleção de biblioteca Bitcoin/Lightning, forma de integração nativa com Expo, política de passphrase, suporte e requisitos de hardware signer, arquitetura de backup de canal, estratégia de sincronização privada, método de build verificável, processo de auditoria externa, custeio de infraestrutura sem custódia e canal público privado de recebimento de vulnerabilidades. Cada decisão requer ADR pública, revisão de ameaça e checkpoint próprio.
+As decisões que bloqueiam a **aceitação** de uma capacidade incluem seleção de biblioteca Bitcoin/Lightning, forma de integração nativa com Expo, política de passphrase, suporte e requisitos de hardware signer, arquitetura de backup de canal, estratégia de sincronização privada, método de build verificável, processo de auditoria externa, custeio de infraestrutura sem custódia e canal público privado de recebimento de vulnerabilidades. A pesquisa, prototipagem e implementação de laboratório podem anteceder a aceitação. Cada decisão de arquitetura sensível requer ADR, revisão de ameaça e checkpoint próprio.
 
 ## 10. Manutenção, revisão e resposta a incidente
 

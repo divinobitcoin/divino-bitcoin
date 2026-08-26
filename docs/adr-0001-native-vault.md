@@ -1,6 +1,6 @@
 # ADR-0001 — Cofre Nativo de Autocustódia
 
-**Status:** aceito como arquitetura; implementação de segredo **bloqueada** até os gates de segurança definidos nesta ADR.  
+**Status:** aceito como arquitetura; habilitação de segredo no build permanece pendente dos gates de segurança definidos nesta ADR.
 **Data:** 20 de agosto de 2026  
 **Escopo atual:** Signet sem valor econômico, pré-lançamento para uso pessoal e sem passphrase BIP-39.  
 **Não escopo:** criação/importação de mnemonic, chaves privadas persistidas, assinatura, PSBT, Lightning, conexão de rede ou fundos reais.
@@ -22,7 +22,7 @@ O produto continuará sem passphrase BIP-39 na primeira versão. A recuperação
 | Cofre de plataforma | Criar chave de envelope não exportável, proteger o registro cifrado e aplicar política de autenticação. | Alias, versão do envelope, ciphertext autenticado e metadados mínimos. | Reutilizar chave entre Demo e Signet, sincronizar para nuvem ou migrar automaticamente entre aparelhos. |
 | Armazenamento de metadados | Guardar apenas dados públicos do namespace `divino-bitcoin.signet.public.*`. | Fonte on-chain, altura de sincronização, descritores públicos e intenção não assinada. | Qualquer segredo, token, invoice real ou backup de canal. |
 
-O registro secreto futuro será um envelope autenticado, versionado e específico por perfil. O conteúdo cifrado ficará fora dos mecanismos automáticos de backup da aplicação; a chave de envelope ficará no armazenamento de chave protegido da plataforma. A rotina nativa irá validar versão, algoritmo e integridade antes de liberar o uso ao núcleo criptográfico. O processo React Native receberá apenas um *handle* transitório, que não poderá ser serializado nem usado em outro perfil ou rede.
+O registro secreto futuro será um envelope autenticado, versionado e específico por perfil. O conteúdo cifrado ficará fora dos mecanismos automáticos de backup da aplicação; a chave de envelope ficará no armazenamento de chave protegido da plataforma. `SharedPreferences`, `AsyncStorage` ou outro armazenamento de preferências não pode ser usado como fallback para o envelope secreto apenas porque o conteúdo está cifrado. A rotina nativa irá validar versão, algoritmo e integridade antes de liberar o uso ao núcleo criptográfico. O processo React Native receberá apenas um *handle* transitório, que não poderá ser serializado nem usado em outro perfil ou rede.
 
 ## Adaptadores de plataforma
 
@@ -39,7 +39,7 @@ No iOS, itens `ThisDeviceOnly` não migram para outro aparelho, e a classe condi
 
 O futuro módulo exporá apenas comandos de alto nível, como `provisionSignetProfile`, `getPublicDescriptor`, `authorizeSigningIntent` e `deleteProfile`. Nenhuma interface chamada `getSeed`, `exportPrivateKey`, `decryptSecret`, `readMnemonic` ou equivalente será criada. Operações criptográficas ocorrerão no módulo nativo, com buffers temporários minimizados e apagados em melhor esforço imediatamente após uso. A ADR reconhece que linguagens gerenciadas não dão garantia universal de apagamento de memória; esse controle reduz exposição, não neutraliza aparelho comprometido.
 
-O cofre não será implementado ou testado em Expo Go. A autenticação biométrica do `expo-secure-store` não é suportada em Expo Go quando falta a permissão nativa necessária; além disso, a biblioteca não deve ser a única fonte de verdade para dados críticos irrecuperáveis. [6] A implementação exigirá um *development build* próprio, módulo nativo revisável, testes em aparelho Android e iOS e uma revisão independente antes de aceitar segredo.
+O cofre não será habilitado ou validado como cofre econômico em Expo Go. A autenticação biométrica do `expo-secure-store` não é suportada em Expo Go quando falta a permissão nativa necessária; além disso, a biblioteca não deve ser a única fonte de verdade para dados críticos irrecuperáveis. [6] A implementação pode avançar em *development build* próprio, módulo nativo revisável, fixtures descartáveis e testes em aparelho Android e iOS. Uma revisão independente e a evidência correspondente continuam necessárias antes de aceitar segredo de usuário.
 
 ## Recuperação, exclusão e observabilidade
 
@@ -63,18 +63,18 @@ Logs, relatórios de falha, área de transferência, analytics, notificações, 
 | Passphrase BIP-39 inicial | Rejeitada | Aumenta de modo material o risco de perda por erro humano antes da maturidade da UX de recuperação. |
 | Cofre JavaScript compartilhado por Demo e Signet | Rejeitada | Viola o isolamento de ambiente já introduzido no projeto. |
 
-## Gates obrigatórios antes de qualquer segredo
+## Gates obrigatórios antes de aceitar segredo de usuário
 
 1. **Dependências:** nenhuma vulnerabilidade crítica ou alta sem remediação/justificativa formal no caminho do cofre, com SBOM e lockfile revisados.
 2. **Implementação:** módulo nativo por plataforma, sem rota de exportação, com testes negativos para logs, clipboard, backup e bridge.
 3. **Criptografia:** biblioteca de Bitcoin auditada, vetores BIP completos, análise de memória e revisão independente de código.
 4. **Recuperação:** UX de backup offline, restauração em aparelho limpo e eliminação testada, sem passphrase na versão inicial.
 5. **Operação:** development build em Android/iOS, avaliação de armazenamento/biometria em aparelhos reais e nenhum uso em Expo Go.
-6. **Autorização:** aprovação explícita do proprietário para o próximo gate; este documento não libera transações Signet.
+6. **Aceitação:** decisão técnica e aprovação do proprietário para aceitar o próximo gate; esta ADR não libera transações Signet. A implementação e os testes de laboratório podem avançar antes dessa aceitação com material descartável.
 
 ## Consequências
 
-A arquitetura aumenta complexidade nativa e torna necessário construir, auditar e manter adaptadores Android/iOS. Em troca, evita que a camada de interface manipule o material mais sensível da carteira e mantém demo, Signet público e eventual cofre em domínios separados. Até que todos os gates sejam atendidos, o Divino Bitcoin permanece uma aplicação demonstrativa e preparatória.
+A arquitetura aumenta complexidade nativa e torna necessário construir, auditar e manter adaptadores Android/iOS. Em troca, evita que a camada de interface manipule o material mais sensível da carteira e mantém demo, Signet público e eventual cofre em domínios separados. Até que todos os gates sejam atendidos, o build do Divino Bitcoin permanece uma aplicação demonstrativa e não aceita segredo de usuário ou valor econômico. Isso não impede a implementação e a validação de laboratório do cofre dentro da arquitetura aprovada.
 
 ## Referências
 
