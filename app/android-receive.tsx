@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Alert, ScrollView, Share, StyleSheet, Text, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { DemoStatusBanner } from "@/components/demo-status-banner";
 import { useWallet } from "@/lib/wallet-context";
 import { formatSats, type LightningInvoice } from "@/shared/wallet";
 
@@ -116,9 +117,10 @@ export default function AndroidReceiveScreen() {
       <ScrollView contentContainerStyle={[styles.content, { paddingTop: insets.top + 18, paddingBottom: insets.bottom + 32 }]} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
         <Text accessibilityRole="button" onPress={() => router.back()} style={styles.backAction}>‹ Voltar à carteira</Text>
         <View style={styles.header}>
-          <Text style={styles.eyebrow}>MODO DE DEMONSTRAÇÃO</Text>
+          <DemoStatusBanner />
+          <Text style={styles.eyebrow}>FLUXO SEM REDE + SIMULAÇÃO LOCAL</Text>
           <Text style={styles.title}>Receber</Text>
-          <Text style={styles.subtitle}>Crie uma solicitação local para testar o fluxo de recebimento com segurança.</Text>
+          <Text style={styles.subtitle}>Crie uma referência local em Signet/laboratório para testar o fluxo de recebimento com segurança.</Text>
         </View>
 
         <View style={styles.formCard}>
@@ -146,7 +148,7 @@ export default function AndroidReceiveScreen() {
 
         <View style={styles.infoCard}>
           <MaterialIcons name="bolt" size={21} color="#085EAF" />
-          <Text style={styles.infoText}>Quando uma fonte Lightning auditada for conectada, este fluxo poderá gerar invoices e QR codes reais após revisão de segurança.</Text>
+          <Text style={styles.infoText}>Esta versão cria apenas uma referência local. Nenhuma invoice BOLT11, QR code ou conexão Lightning é gerada.</Text>
         </View>
 
         <Text accessibilityRole="button" onPress={() => void createRequest()} style={styles.primaryAction}>CRIAR SOLICITAÇÃO</Text>

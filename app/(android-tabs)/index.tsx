@@ -3,6 +3,7 @@ import { useRouter } from "expo-router";
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { DemoStatusBanner } from "@/components/demo-status-banner";
 import { useWallet } from "@/lib/wallet-context";
 import { formatDateTime, formatSats } from "@/shared/wallet";
 
@@ -48,17 +49,14 @@ export default function AndroidWalletTab() {
           </Text>
         </View>
 
-        <View style={styles.demoNotice}>
-          <MaterialIcons name="science" size={18} color="#085EAF" />
-          <Text style={styles.demoNoticeText}>Modo de demonstração. Nenhum bitcoin real é movimentado.</Text>
-        </View>
+        <DemoStatusBanner />
 
         <View style={styles.balanceCard}>
           <View style={styles.balanceHeader}>
             <Text style={styles.balanceLabel}>Saldo disponível</Text>
             <View style={styles.lightningPill}>
               <MaterialIcons name="bolt" size={15} color="#F7931A" />
-              <Text style={styles.lightningText}>LIGHTNING</Text>
+              <Text style={styles.lightningText}>LIGHTNING DEMO</Text>
             </View>
           </View>
           <Text style={styles.balance}>{balanceLabel}</Text>
@@ -115,7 +113,7 @@ export default function AndroidWalletTab() {
           </View>
           <View style={styles.protectionText}>
             <Text style={styles.protectionTitle}>Segurança em primeiro lugar</Text>
-            <Text style={styles.protectionDescription}>Antes de usar uma fonte externa, conecte um provedor Lightning auditado e revise as proteções.</Text>
+            <Text style={styles.protectionDescription}>Nenhuma fonte externa está conectada. Saldos e movimentos desta tela são somente locais.</Text>
           </View>
         </View>
       </ScrollView>
@@ -131,8 +129,6 @@ const styles = StyleSheet.create({
   eyebrow: { color: "#F7931A", fontSize: 11, fontWeight: "800", letterSpacing: 1.1 },
   title: { color: "#101828", fontSize: 29, fontWeight: "700", letterSpacing: -0.6, marginTop: 4 },
   visibilityAction: { backgroundColor: "#FFFFFF", borderColor: "#E5E7EB", borderRadius: 18, borderWidth: 1, color: "#374151", fontSize: 12, fontWeight: "800", overflow: "hidden", paddingHorizontal: 13, paddingVertical: 10 },
-  demoNotice: { alignItems: "center", backgroundColor: "#E6F4FE", borderRadius: 12, flexDirection: "row", gap: 8, padding: 12 },
-  demoNoticeText: { color: "#085EAF", flex: 1, fontSize: 13, fontWeight: "600", lineHeight: 18 },
   balanceCard: { backgroundColor: "#0D1117", borderRadius: 24, gap: 10, minHeight: 176, padding: 22 },
   balanceHeader: { alignItems: "center", flexDirection: "row", justifyContent: "space-between" },
   balanceLabel: { color: "#B9C3D0", fontSize: 14, fontWeight: "600" },

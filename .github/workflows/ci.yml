@@ -58,6 +58,9 @@ jobs:
       - name: Lint
         run: pnpm lint
 
+      - name: Fronteira TEST/LAB
+        run: pnpm guard:lab-boundary
+
       - name: SBOM esta atualizado
         # O gerador e deterministico por desenho (serialNumber fixo). Se a
         # regeneracao produzir diferenca, o SBOM commitado nao corresponde ao

@@ -22,7 +22,8 @@
     "android:dev-client": "pnpm native:android:prebuild && expo run:android --device",
     "ios": "expo run:ios",
     "qr": "node scripts/generate_qr.mjs",
-    "sbom:prod": "node scripts/generate-production-sbom.mjs"
+    "sbom:prod": "node scripts/generate-production-sbom.mjs",
+    "guard:lab-boundary": "node scripts/verify-lab-boundary.mjs"
   },
   "dependencies": {
     "@expo/metro-runtime": "^55.0.12",
