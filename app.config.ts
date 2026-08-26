@@ -65,7 +65,10 @@ const config: ExpoConfig = {
     intentFilters: [
       {
         action: "VIEW",
-        autoVerify: true,
+        // Sem autoVerify: essa flag só tem efeito em Android App Links
+        // (esquemas http/https verificados por assetlinks.json). Em um scheme
+        // customizado ela é ignorada pelo sistema e apenas sugere uma
+        // verificação que nunca acontece. Ver DEEP-LINK-001-A.
         data: [
           {
             scheme: env.scheme,
