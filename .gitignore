@@ -35,6 +35,9 @@ yarn-error.*
 .env.*
 .env*.local
 
+# Claude Code — contexto local, nunca versionado (use CLAUDE.local.md.example como modelo)
+CLAUDE.local.md
+
 # typescript
 *.tsbuildinfo
 

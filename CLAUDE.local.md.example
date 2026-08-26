@@ -1,0 +1,31 @@
+# CLAUDE.local.md — copie este arquivo para CLAUDE.local.md e preencha
+#
+# Este arquivo NUNCA vai pro Git (está no .gitignore). Serve pra dar ao
+# Claude Code contexto sobre o SEU ambiente local, sem que isso vaze pro
+# repositório público.
+
+## Ambiente local (Dell)
+
+- Repositório principal: ~/Documentos/divino-bitcoin
+- Worktree do PR de código, se ainda existir: ~/Documentos/divino-bitcoin-p2-code
+- Node: 22.22.1 · pnpm: 9.12.0 · JDK: 17
+
+## Bitcoin Core (Signet)
+
+- Nó Signet do projeto roda em: ~/.bitcoin-divino-signet
+- Nó Mainnet pessoal (NÃO relacionado ao projeto, nunca misturar): ~/.bitcoin-pessoal-mainnet
+- Porta RPC Signet padrão: 38332
+- Credenciais RPC: [NÃO cole a senha aqui — mantenha em variável de ambiente
+  ou num arquivo .env local, também gitignored, e referencie o nome da
+  variável, não o valor]
+
+## Aparelho de teste
+
+- Xiaomi Note 11: bloqueado por falta de cabo USB de dados (só carrega, não
+  transfere dados). Assim que resolver, `adb devices` deve listar o aparelho.
+
+## Lembrete de modelo
+
+- Sonnet 5: trabalho de rotina
+- Opus 5: decisões de arquitetura, gates da ADR-0001
+- Fable 5: reservar para revisão de segurança crítica antes de Mainnet real
