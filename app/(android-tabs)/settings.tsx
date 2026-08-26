@@ -1,4 +1,5 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import { useRouter } from "expo-router";
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -11,6 +12,7 @@ const switchTrackColor = { false: "#D1D5DB", true: "#8DC8FF" };
 
 export default function AndroidSettingsTab() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const { state, isReady, selectLightningProvider, setBiometricsEnabled, setHideBalance } = useWallet();
 
   if (!isReady || !state) {
@@ -175,6 +177,23 @@ export default function AndroidSettingsTab() {
               <Text style={styles.settingTitle}>Diagnóstico do cofre nativo</Text>
               <Text style={styles.settingDescription}>Confirma a ponte Kotlin e o bloqueio explícito de operações, sem seed, chave, assinatura, backup ou rede.</Text>
               <Text accessibilityRole="button" onPress={() => void testNativeVaultIntegration()} style={styles.textAction}>TESTAR INTEGRAÇÃO →</Text>
+            </View>
+          </View>
+        </View>
+
+        <Text style={styles.sectionLabel}>REDE SIGNET (TESTE)</Text>
+        <View style={styles.group}>
+          <View style={styles.actionRow}>
+            <View style={styles.iconBox}>
+              <MaterialIcons name="travel-explore" size={21} color="#0A84FF" />
+            </View>
+            <View style={styles.flex}>
+              <Text style={styles.settingTitle}>Observar endereço {SIGNET_NETWORK.label}</Text>
+              <Text style={styles.settingDescription}>
+                Consulta saldo real de um endereço colado manualmente, via Esplora público. Ferramenta de teste — não
+                é a carteira final.
+              </Text>
+              <Text accessibilityRole="button" onPress={() => router.push("/dev/signet-watch")} style={styles.textAction}>ABRIR →</Text>
             </View>
           </View>
         </View>

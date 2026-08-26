@@ -16,6 +16,7 @@ function WalletNavigator() {
       <Stack.Screen name="scan-invoice" options={{ headerShown: false, presentation: "fullScreenModal" }} />
       <Stack.Screen name="payment-review" options={{ title: "Revisar pagamento", presentation: "modal" }} />
       <Stack.Screen name="transaction/[id]" options={{ title: "Detalhe" }} />
+      <Stack.Screen name="dev/signet-watch" options={{ title: "Observar endereço Signet" }} />
     </Stack>
   );
 }

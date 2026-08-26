@@ -15,6 +15,7 @@ export default function AndroidNavigationLayout() {
           <Stack.Screen name="android-receive" options={{ headerShown: false }} />
           <Stack.Screen name="android-send" options={{ headerShown: false }} />
           <Stack.Screen name="android-transaction-detail" options={{ headerShown: false }} />
+          <Stack.Screen name="dev/signet-watch" options={{ title: "Observar endereço Signet" }} />
         </Stack>
       </WalletProvider>
     </SafeAreaProvider>
