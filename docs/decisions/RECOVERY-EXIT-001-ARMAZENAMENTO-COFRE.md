@@ -7,6 +7,11 @@
 **Toca:** `WF-F11` / `INV-006` (proibição de downgrade silencioso de armazenamento), `WF-F2` / `INV-003` (segredo não sai da fronteira aprovada), ameaça `T6` (backup copiado ou restaurado de forma enganosa)
 **Não autoriza:** aceitar segredo real de usuário. Os gates da ADR-0001 seguem fechados.
 
+> **Emendado em 27 de agosto de 2026.** A decisão do proprietário está registrada na
+> **Emenda 1**, ao final deste documento. O status acima é o original de 26/08 e foi
+> preservado: a Emenda 1 o substitui na parte de *política* e o mantém na parte de
+> *evidência*.
+
 ---
 
 ## 1. O achado, corrigido pela evidência
@@ -133,6 +138,90 @@ Declaradas para que a revisão tenha alvo, e para que esta proposta possa ser re
 4. Há risco de `getNoBackupFilesDir()` ter comportamento diferente sob perfis de trabalho, usuários secundários ou armazenamento adotável?
 
 **Condição de refutação desta proposta:** demonstrar que existe um caminho realista pelo qual conteúdo de `no_backup` sai do aparelho sem root — o que reduziria a garantia ao mesmo nível de uma regra XML e reabriria a comparação com as alternativas.
+
+---
+
+## Emenda 1 — Decisão do proprietário: a fronteira é o aparelho
+
+**Data:** 27 de agosto de 2026
+**Natureza:** Emenda do proprietário ao documento normativo. Acrescenta e aponta; não altera nem apaga as seções 1 a 8 acima.
+**Efeito:** Fecha a questão de *política*. Não fecha a questão de *evidência*.
+
+### O que foi decidido
+
+Nenhum material de cofre sai do aparelho. Por canal nenhum.
+
+- **Backup em nuvem (Google Drive):** não.
+- **Transferência aparelho-a-aparelho (D2D):** não.
+- Sem exceção, sem modo de conveniência, sem opção que o usuário possa ligar.
+
+Razão declarada pelo proprietário: *um canal de transferência que existe por conveniência é também um caminho de saída. Promessas que parecem seguras são portas, e portas abrem dos dois lados.*
+
+### Esta emenda não cria política nova — ela aplica política existente
+
+Registrado porque a distinção importa e porque evita que esta decisão seja lida como mudança de rumo.
+
+A proibição já estava escrita, em nível de arquitetura, antes desta emenda:
+
+| Onde | O que já dizia |
+|---|---|
+| `adr-0001-native-vault.md`, Alternativas rejeitadas | *"Seed em nuvem ou backup automático — Rejeitada — Incompatível com o modelo de autocustódia e amplia a superfície de exfiltração."* |
+| `adr-0001-native-vault.md`, Recuperação | *"A mnemonic offline, não o aparelho, é a recuperação final."* |
+| `threat-model.md`, T6 (Crítico) | Mitigação inclui *"proibição de backup em nuvem implícita"*. |
+| `threat-model.md`, T3 (Alta) | Mitigação inclui *"recuperação fora do dispositivo"*. |
+
+O que faltava não era a decisão. Era o **mecanismo de plataforma que a torna verdadeira no Android**, e a constatação de que a configuração vigente a deixava depender de um XML de biblioteca de terceiro.
+
+Reformulação da pergunta que este documento responde: não *"podemos deixar sair?"* — isso já estava respondido — mas *"o que garante que não sai, sem depender de configuração que alguém possa rebaixar em silêncio?"*
+
+A emenda acrescenta uma coisa ao que já existia: torna explícito que **D2D está incluído na proibição**. As fontes acima nomeiam nuvem e backup automático; nenhuma nomeia transferência aparelho-a-aparelho. Essa lacuna está agora fechada.
+
+### O que isso muda no documento
+
+A seção 3 deixa de ser recomendação técnica e passa a ser **o único caminho conhecido que satisfaz o requisito**. A tabela da seção 6 permanece como registro do raciocínio, mas as alternativas ali listadas estão agora descartadas por política, não apenas por análise comparativa:
+
+| Alternativa | Situação após esta emenda |
+|---|---|
+| `allowBackup="false"` sozinho | Descartada. Não entrega o requisito — falha em D2D por fabricante, ref. [2]. |
+| Regras XML próprias sozinhas | Descartada. Não entrega o requisito — garantia dependente de merge de manifesto. |
+| Envelope em `SharedPreferences` | Descartada. Já vedado por `WF-F11`. |
+| `getNoBackupFilesDir()` + regras XML explícitas | **Único candidato remanescente.** |
+
+### O que esta emenda NÃO estabelece
+
+Este é o ponto mais importante da emenda, e está aqui para que a decisão não seja lida como verificação.
+
+O proprietário decidiu **o requisito**. A capacidade de cumprir o requisito **não foi verificada**:
+
+- Que `getNoBackupFilesDir()` é excluído de backup em nuvem **e de D2D** é conclusão **documental** (refs. [3], [4], [5]). Nenhum aparelho foi testado.
+- A camada MIUI do aparelho de teste **não foi avaliada** quanto a ferramenta de migração proprietária. A pergunta 2 da seção 8 segue aberta e passa a ser a mais importante das quatro.
+- Existe precedente direto, neste mesmo documento, de garantia documental que falha por fabricante: é exatamente o que a seção 2 registra sobre `allowBackup="false"`.
+
+Enquanto a seção 7 não for cumprida, a afirmação que o projeto pode sustentar é:
+
+> *O requisito está definido e é normativo. O mecanismo escolhido é o mais forte disponível na plataforma. A conformidade não foi verificada em aparelho.*
+
+Afirmar mais que isso viola `WF-F10`.
+
+### Consequência de recuperação — já normatizada, reafirmada aqui
+
+Se nada sai do aparelho, então aparelho perdido, roubado, quebrado ou formatado leva os fundos junto — a menos que o usuário tenha a mnemonic guardada fora dele, pelas próprias mãos.
+
+Isso é a consequência **pretendida** da autocustódia, não um efeito colateral a mitigar. E já é gate obrigatório: `adr-0001-native-vault.md`, gate 4 — *"Recuperação: UX de backup offline, restauração em aparelho limpo e eliminação testada, sem passphrase na versão inicial."*
+
+Nenhum achado novo é aberto por esta emenda. O gate 4 já cobre o requisito e permanece fechado. Registra-se apenas o reforço: uma carteira que aplique esta emenda e **não** force o usuário a registrar e conferir a mnemonic antes do primeiro recebimento constrói uma armadilha, não uma carteira. O gate 4 é o que impede isso.
+
+### Status após esta emenda
+
+| Dimensão | Estado |
+|---|---|
+| Política — o requisito | **DECIDIDO.** Proprietário, 27/08/2026. Normativo. |
+| Mecanismo — `getNoBackupFilesDir()` | **PROPOSTO.** Sem verificação empírica. |
+| Evidência — seção 7, itens 1 a 4 | **PENDENTE.** |
+| Revisão adversarial — seção 7, item 5 | **PENDENTE.** |
+| Gates da ADR-0001 | **INALTERADOS.** Nenhum segredo real autorizado. |
+
+Esta emenda não libera gate algum, não autoriza provisionamento de segredo, não autoriza Mainnet e não substitui auditoria externa.
 
 ---
 
