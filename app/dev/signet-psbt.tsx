@@ -13,6 +13,7 @@ import {
 } from "react-native";
 
 import { ScreenContainer } from "@/components/screen-container";
+import { cores } from "@/constants/palette";
 import { haptic } from "@/lib/haptics";
 import { SIGNET_NETWORK } from "@/shared/bitcoin-network";
 import { selectCoins } from "@/shared/coin-selection";
@@ -282,7 +283,7 @@ export default function SignetPsbtScreen() {
   }
 
   return (
-    <ScreenContainer containerClassName="bg-[#F7F9FC]" safeAreaClassName="bg-[#F7F9FC]">
+    <ScreenContainer containerClassName="bg-[#080B0C]" safeAreaClassName="bg-[#080B0C]">
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <Text style={styles.eyebrow}>FERRAMENTA DE TESTE — NÃO É A CARTEIRA FINAL</Text>
@@ -290,7 +291,7 @@ export default function SignetPsbtScreen() {
         </View>
 
         <View style={styles.noticeCard}>
-          <MaterialIcons name="key-off" size={20} color="#B85A00" />
+          <MaterialIcons name="key-off" size={20} color={cores.aviso} />
           <View style={styles.flex}>
             <Text style={styles.noticeTitle}>Esta tela não assina</Text>
             <Text style={styles.noticeText}>
@@ -310,7 +311,7 @@ export default function SignetPsbtScreen() {
             value={originAddress}
             onChangeText={setOriginAddress}
             placeholder="tb1q..."
-            placeholderTextColor="#98A2B3"
+            placeholderTextColor={cores.textoTerciario}
             autoCapitalize="none"
             autoCorrect={false}
             style={styles.input}
@@ -321,10 +322,10 @@ export default function SignetPsbtScreen() {
           accessibilityRole="button"
           onPress={() => void loadUtxos()}
           disabled={busy}
-          android_ripple={{ color: "rgba(255, 255, 255, 0.24)" }}
+          android_ripple={{ color: cores.ondulacaoEscura }}
           style={[styles.button, busy && styles.buttonDisabled]}
         >
-          {busy && !review ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.buttonText}>Buscar UTXOs</Text>}
+          {busy && !review ? <ActivityIndicator color={cores.acaoPrimariaTexto} /> : <Text style={styles.buttonText}>Buscar UTXOs</Text>}
         </Pressable>
 
         {utxos && (
@@ -358,7 +359,7 @@ export default function SignetPsbtScreen() {
                 value={destination}
                 onChangeText={setDestination}
                 placeholder="tb1q..."
-                placeholderTextColor="#98A2B3"
+                placeholderTextColor={cores.textoTerciario}
                 autoCapitalize="none"
                 autoCorrect={false}
                 style={styles.input}
@@ -372,7 +373,7 @@ export default function SignetPsbtScreen() {
                   value={amount}
                   onChangeText={setAmount}
                   placeholder="5000"
-                  placeholderTextColor="#98A2B3"
+                  placeholderTextColor={cores.textoTerciario}
                   keyboardType="number-pad"
                   style={styles.input}
                 />
@@ -383,7 +384,7 @@ export default function SignetPsbtScreen() {
                   value={feeRate}
                   onChangeText={setFeeRate}
                   placeholder="2"
-                  placeholderTextColor="#98A2B3"
+                  placeholderTextColor={cores.textoTerciario}
                   keyboardType="decimal-pad"
                   style={styles.input}
                 />
@@ -396,7 +397,7 @@ export default function SignetPsbtScreen() {
                 value={changeAddress}
                 onChangeText={setChangeAddress}
                 placeholder="tb1q..."
-                placeholderTextColor="#98A2B3"
+                placeholderTextColor={cores.textoTerciario}
                 autoCapitalize="none"
                 autoCorrect={false}
                 style={styles.input}
@@ -411,7 +412,7 @@ export default function SignetPsbtScreen() {
             <Pressable
               accessibilityRole="button"
               onPress={buildPsbt}
-              android_ripple={{ color: "rgba(255, 255, 255, 0.24)" }}
+              android_ripple={{ color: cores.ondulacaoEscura }}
               style={styles.button}
             >
               <Text style={styles.buttonText}>Montar PSBT</Text>
@@ -426,7 +427,7 @@ export default function SignetPsbtScreen() {
 
             {buildNotes.map((note) => (
               <View key={note} style={styles.noteRow}>
-                <MaterialIcons name="check" size={16} color="#067647" />
+                <MaterialIcons name="check" size={16} color={cores.sucesso} />
                 <Text style={styles.noteText}>{note}</Text>
               </View>
             ))}
@@ -441,10 +442,10 @@ export default function SignetPsbtScreen() {
             <Pressable
               accessibilityRole="button"
               onPress={() => void copyUnsigned()}
-              android_ripple={{ color: "rgba(10, 132, 255, 0.16)" }}
+              android_ripple={{ color: cores.ondulacaoClara }}
               style={styles.secondaryButton}
             >
-              <MaterialIcons name="content-copy" size={18} color="#0A84FF" />
+              <MaterialIcons name="content-copy" size={18} color={cores.acaoSecundariaTexto} />
               <Text style={styles.secondaryButtonText}>Copiar PSBT</Text>
             </Pressable>
 
@@ -454,7 +455,7 @@ export default function SignetPsbtScreen() {
                 value={signedPsbt}
                 onChangeText={setSignedPsbt}
                 placeholder="cHNidP8B..."
-                placeholderTextColor="#98A2B3"
+                placeholderTextColor={cores.textoTerciario}
                 autoCapitalize="none"
                 autoCorrect={false}
                 multiline
@@ -466,16 +467,16 @@ export default function SignetPsbtScreen() {
               <Pressable
                 accessibilityRole="button"
                 onPress={() => void pasteSigned()}
-                android_ripple={{ color: "rgba(10, 132, 255, 0.16)" }}
+                android_ripple={{ color: cores.ondulacaoClara }}
                 style={[styles.secondaryButton, styles.flex]}
               >
-                <MaterialIcons name="content-paste" size={18} color="#0A84FF" />
+                <MaterialIcons name="content-paste" size={18} color={cores.acaoSecundariaTexto} />
                 <Text style={styles.secondaryButtonText}>Colar</Text>
               </Pressable>
               <Pressable
                 accessibilityRole="button"
                 onPress={reviewSigned}
-                android_ripple={{ color: "rgba(255, 255, 255, 0.24)" }}
+                android_ripple={{ color: cores.ondulacaoEscura }}
                 style={[styles.button, styles.flex]}
               >
                 <Text style={styles.buttonText}>Revisar</Text>
@@ -526,13 +527,13 @@ export default function SignetPsbtScreen() {
 
             {review.warnings.map((warning) => (
               <View key={warning} style={styles.warnCard}>
-                <MaterialIcons name="warning-amber" size={18} color="#B85A00" />
+                <MaterialIcons name="warning-amber" size={18} color={cores.aviso} />
                 <Text style={styles.warnText}>{warning}</Text>
               </View>
             ))}
 
             <View style={styles.irreversibleCard}>
-              <MaterialIcons name="report" size={20} color="#B42318" />
+              <MaterialIcons name="report" size={20} color={cores.perigo} />
               <Text style={styles.irreversibleText}>
                 Confira o destino e o valor acima contra o que você pretendia. Estes números foram lidos da
                 transação assinada, não dos campos que você preencheu — se divergirem, não transmita.
@@ -544,18 +545,18 @@ export default function SignetPsbtScreen() {
                 accessibilityRole="button"
                 onPress={confirmBroadcast}
                 disabled={busy}
-                android_ripple={{ color: "rgba(255, 255, 255, 0.24)" }}
+                android_ripple={{ color: cores.ondulacaoEscura }}
                 style={[styles.dangerButton, busy && styles.buttonDisabled]}
               >
                 {busy ? (
-                  <ActivityIndicator color="#FFFFFF" />
+                  <ActivityIndicator color={cores.acaoPrimariaTexto} />
                 ) : (
                   <Text style={styles.buttonText}>Transmitir na {SIGNET_NETWORK.label}</Text>
                 )}
               </Pressable>
             ) : (
               <View style={styles.successCard}>
-                <MaterialIcons name="check-circle" size={22} color="#067647" />
+                <MaterialIcons name="check-circle" size={22} color={cores.sucesso} />
                 <View style={styles.flex}>
                   <Text style={styles.successTitle}>Aceita pelo nó</Text>
                   <Text style={styles.successTxid}>{broadcastTxid}</Text>
@@ -567,7 +568,7 @@ export default function SignetPsbtScreen() {
 
         {error !== "" && (
           <View style={styles.errorCard}>
-            <MaterialIcons name="error-outline" size={18} color="#B42318" />
+            <MaterialIcons name="error-outline" size={18} color={cores.perigo} />
             <Text style={styles.errorText}>{error}</Text>
           </View>
         )}
@@ -587,105 +588,105 @@ export default function SignetPsbtScreen() {
 const styles = StyleSheet.create({
   content: { gap: 14, padding: 20, paddingBottom: 48 },
   header: { gap: 4, marginTop: 4 },
-  eyebrow: { color: "#B85A00", fontSize: 11, fontWeight: "800", letterSpacing: 0.8 },
-  title: { color: "#101828", fontSize: 24, fontWeight: "700", letterSpacing: -0.4, marginTop: 4 },
+  eyebrow: { color: cores.aviso, fontSize: 11, fontWeight: "800", letterSpacing: 0.8 },
+  title: { color: cores.textoPrimario, fontSize: 24, fontWeight: "700", letterSpacing: -0.4, marginTop: 4 },
   flex: { flex: 1 },
 
-  step: { color: "#344054", fontSize: 13, fontWeight: "800", letterSpacing: 0.3, marginTop: 10 },
+  step: { color: cores.textoSecundario, fontSize: 13, fontWeight: "800", letterSpacing: 0.3, marginTop: 10 },
 
   noticeCard: {
-    alignItems: "flex-start", backgroundColor: "#FFF3E5", borderRadius: 16,
+    alignItems: "flex-start", backgroundColor: cores.avisoSuperficie, borderRadius: 16,
     flexDirection: "row", gap: 12, padding: 15,
   },
-  noticeTitle: { color: "#8A4B00", fontSize: 13, fontWeight: "800", marginBottom: 4 },
-  noticeText: { color: "#966122", fontSize: 12, lineHeight: 17 },
+  noticeTitle: { color: cores.aviso, fontSize: 13, fontWeight: "800", marginBottom: 4 },
+  noticeText: { color: cores.textoSecundario, fontSize: 12, lineHeight: 17 },
 
   inputGroup: { gap: 6 },
   inputRow: { flexDirection: "row", gap: 10 },
   feeField: { width: 96 },
-  label: { color: "#667085", fontSize: 12, fontWeight: "700", letterSpacing: 0.4 },
-  hint: { color: "#98A2B3", fontSize: 11, lineHeight: 15, marginTop: 2 },
+  label: { color: cores.textoSecundario, fontSize: 12, fontWeight: "700", letterSpacing: 0.4 },
+  hint: { color: cores.textoTerciario, fontSize: 11, lineHeight: 15, marginTop: 2 },
   input: {
-    backgroundColor: "#FFFFFF", borderColor: "#E7EAF0", borderRadius: 14, borderWidth: 1,
-    color: "#101828", fontSize: 15, paddingHorizontal: 14, paddingVertical: 13,
+    backgroundColor: cores.superficieAlta, borderColor: cores.borda, borderRadius: 14, borderWidth: 1,
+    color: cores.textoPrimario, fontSize: 15, paddingHorizontal: 14, paddingVertical: 13,
   },
   inputMultiline: { minHeight: 92, textAlignVertical: "top" },
 
   button: {
-    alignItems: "center", backgroundColor: "#0A84FF", borderRadius: 14,
+    alignItems: "center", backgroundColor: cores.acaoPrimaria, borderRadius: 14,
     justifyContent: "center", minHeight: 52,
   },
   buttonDisabled: { opacity: 0.7 },
-  buttonText: { color: "#FFFFFF", fontSize: 15, fontWeight: "700" },
+  buttonText: { color: cores.acaoPrimariaTexto, fontSize: 15, fontWeight: "700" },
   buttonPair: { flexDirection: "row", gap: 10 },
   secondaryButton: {
-    alignItems: "center", backgroundColor: "#EAF4FF", borderRadius: 14, flexDirection: "row",
+    alignItems: "center", backgroundColor: cores.acaoSecundariaFundo, borderRadius: 14, flexDirection: "row",
     gap: 8, justifyContent: "center", minHeight: 52,
   },
-  secondaryButtonText: { color: "#0A84FF", fontSize: 15, fontWeight: "700" },
+  secondaryButtonText: { color: cores.acaoSecundariaTexto, fontSize: 15, fontWeight: "700" },
   dangerButton: {
-    alignItems: "center", backgroundColor: "#B42318", borderRadius: 14,
+    alignItems: "center", backgroundColor: cores.perigo, borderRadius: 14,
     justifyContent: "center", minHeight: 56,
   },
   resetButton: { alignItems: "center", paddingVertical: 12 },
-  resetText: { color: "#667085", fontSize: 13, fontWeight: "600" },
+  resetText: { color: cores.textoSecundario, fontSize: 13, fontWeight: "600" },
 
-  darkCard: { backgroundColor: "#0D1117", borderRadius: 20, padding: 20 },
-  darkLabel: { color: "#B9C3D0", fontSize: 13, fontWeight: "600" },
+  darkCard: { backgroundColor: cores.superficie, borderRadius: 20, padding: 20 },
+  darkLabel: { color: cores.textoSecundario, fontSize: 13, fontWeight: "600" },
   darkBalance: {
-    color: "#FFFFFF", fontSize: 30, fontVariant: ["tabular-nums"],
+    color: cores.textoPrimario, fontSize: 30, fontVariant: ["tabular-nums"],
     fontWeight: "800", letterSpacing: -0.8, marginTop: 6,
   },
-  pending: { color: "#F7931A", fontSize: 12, fontWeight: "600", marginTop: 6 },
-  divider: { backgroundColor: "#22262E", height: StyleSheet.hairlineWidth, marginVertical: 12 },
+  pending: { color: cores.aviso, fontSize: 12, fontWeight: "600", marginTop: 6 },
+  divider: { backgroundColor: cores.borda, height: StyleSheet.hairlineWidth, marginVertical: 12 },
   row: { alignItems: "center", flexDirection: "row", justifyContent: "space-between", paddingVertical: 4 },
-  rowLabel: { color: "#8793A5", fontSize: 13 },
-  rowValue: { color: "#FFFFFF", fontSize: 13, fontVariant: ["tabular-nums"], fontWeight: "700" },
-  rowStrong: { color: "#FFFFFF", fontSize: 17, fontVariant: ["tabular-nums"], fontWeight: "800" },
+  rowLabel: { color: cores.textoSecundario, fontSize: 13 },
+  rowValue: { color: cores.textoPrimario, fontSize: 13, fontVariant: ["tabular-nums"], fontWeight: "700" },
+  rowStrong: { color: cores.textoPrimario, fontSize: 17, fontVariant: ["tabular-nums"], fontWeight: "800" },
 
   noteRow: { alignItems: "flex-start", flexDirection: "row", gap: 8 },
-  noteText: { color: "#475467", flex: 1, fontSize: 12, lineHeight: 17 },
+  noteText: { color: cores.textoSecundario, flex: 1, fontSize: 12, lineHeight: 17 },
 
-  psbtCard: { backgroundColor: "#FFFFFF", borderColor: "#E7EAF0", borderRadius: 14, borderWidth: 1, gap: 6, padding: 14 },
-  psbtLabel: { color: "#667085", fontSize: 11, fontWeight: "700", letterSpacing: 0.4 },
-  psbtValue: { color: "#101828", fontFamily: "monospace", fontSize: 11, lineHeight: 16 },
+  psbtCard: { backgroundColor: cores.superficie, borderColor: cores.borda, borderRadius: 14, borderWidth: 1, gap: 6, padding: 14 },
+  psbtLabel: { color: cores.textoSecundario, fontSize: 11, fontWeight: "700", letterSpacing: 0.4 },
+  psbtValue: { color: cores.textoPrimario, fontFamily: "monospace", fontSize: 11, lineHeight: 16 },
 
-  reviewCard: { backgroundColor: "#0D1117", borderRadius: 20, padding: 20 },
+  reviewCard: { backgroundColor: cores.superficie, borderRadius: 20, padding: 20 },
   reviewNetwork: {
-    color: "#F7931A", fontSize: 11, fontWeight: "800",
+    color: cores.rede, fontSize: 11, fontWeight: "800",
     letterSpacing: 1.2, marginBottom: 12,
   },
   outputBlock: { gap: 2, paddingVertical: 8 },
-  tagDestination: { color: "#F7931A", fontSize: 10, fontWeight: "800", letterSpacing: 0.8 },
-  tagChange: { color: "#8793A5", fontSize: 10, fontWeight: "800", letterSpacing: 0.8 },
-  outputAmount: { color: "#FFFFFF", fontSize: 18, fontVariant: ["tabular-nums"], fontWeight: "800" },
-  outputAddress: { color: "#8793A5", fontFamily: "monospace", fontSize: 10, lineHeight: 15 },
-  txidLabel: { color: "#5B6472", fontSize: 10, fontWeight: "700", letterSpacing: 0.6 },
-  txid: { color: "#8793A5", fontFamily: "monospace", fontSize: 10, lineHeight: 15, marginTop: 3 },
+  tagDestination: { color: cores.acaoPrimaria, fontSize: 10, fontWeight: "800", letterSpacing: 0.8 },
+  tagChange: { color: cores.textoSecundario, fontSize: 10, fontWeight: "800", letterSpacing: 0.8 },
+  outputAmount: { color: cores.textoPrimario, fontSize: 18, fontVariant: ["tabular-nums"], fontWeight: "800" },
+  outputAddress: { color: cores.textoSecundario, fontFamily: "monospace", fontSize: 10, lineHeight: 15 },
+  txidLabel: { color: cores.textoTerciario, fontSize: 10, fontWeight: "700", letterSpacing: 0.6 },
+  txid: { color: cores.textoSecundario, fontFamily: "monospace", fontSize: 10, lineHeight: 15, marginTop: 3 },
 
   warnCard: {
-    alignItems: "flex-start", backgroundColor: "#FFF3E5", borderRadius: 14,
+    alignItems: "flex-start", backgroundColor: cores.avisoSuperficie, borderRadius: 14,
     flexDirection: "row", gap: 10, padding: 14,
   },
-  warnText: { color: "#8A4B00", flex: 1, fontSize: 12, lineHeight: 17 },
+  warnText: { color: cores.aviso, flex: 1, fontSize: 12, lineHeight: 17 },
   irreversibleCard: {
-    alignItems: "flex-start", backgroundColor: "#FEF3F2", borderRadius: 14,
+    alignItems: "flex-start", backgroundColor: cores.perigoSuperficie, borderRadius: 14,
     flexDirection: "row", gap: 10, padding: 14,
   },
-  irreversibleText: { color: "#912018", flex: 1, fontSize: 12, lineHeight: 17 },
+  irreversibleText: { color: cores.perigo, flex: 1, fontSize: 12, lineHeight: 17 },
 
   successCard: {
-    alignItems: "center", backgroundColor: "#ECFDF3", borderRadius: 16,
+    alignItems: "center", backgroundColor: cores.sucessoSuperficie, borderRadius: 16,
     flexDirection: "row", gap: 12, padding: 16,
   },
-  successTitle: { color: "#067647", fontSize: 14, fontWeight: "800" },
-  successTxid: { color: "#3B7C60", fontFamily: "monospace", fontSize: 10, lineHeight: 15, marginTop: 3 },
+  successTitle: { color: cores.sucesso, fontSize: 14, fontWeight: "800" },
+  successTxid: { color: cores.sucesso, fontFamily: "monospace", fontSize: 10, lineHeight: 15, marginTop: 3 },
 
   errorCard: {
-    alignItems: "flex-start", backgroundColor: "#FEF3F2", borderRadius: 14,
+    alignItems: "flex-start", backgroundColor: cores.perigoSuperficie, borderRadius: 14,
     flexDirection: "row", gap: 10, padding: 14,
   },
-  errorText: { color: "#B42318", flex: 1, fontSize: 13, lineHeight: 18 },
+  errorText: { color: cores.perigo, flex: 1, fontSize: 13, lineHeight: 18 },
 
-  source: { color: "#98A2B3", fontSize: 10, marginTop: 8, textAlign: "center" },
+  source: { color: cores.textoTerciario, fontSize: 10, marginTop: 8, textAlign: "center" },
 });
