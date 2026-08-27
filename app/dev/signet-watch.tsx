@@ -88,7 +88,8 @@ export default function SignetWatchScreen() {
           accessibilityRole="button"
           onPress={() => void checkAddress()}
           disabled={status === "loading"}
-          style={({ pressed }) => [styles.button, pressed && styles.buttonPressed, status === "loading" && styles.buttonDisabled]}
+          android_ripple={{ color: "rgba(255, 255, 255, 0.24)" }}
+          style={[styles.button, status === "loading" && styles.buttonDisabled]}
         >
           {status === "loading" ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.buttonText}>Consultar saldo real</Text>}
         </Pressable>
@@ -143,7 +144,6 @@ const styles = StyleSheet.create({
     color: "#101828", fontSize: 15, paddingHorizontal: 14, paddingVertical: 13,
   },
   button: { alignItems: "center", backgroundColor: "#0A84FF", borderRadius: 14, justifyContent: "center", minHeight: 52 },
-  buttonPressed: { opacity: 0.86 },
   buttonDisabled: { opacity: 0.7 },
   buttonText: { color: "#FFFFFF", fontSize: 15, fontWeight: "700" },
   errorCard: { alignItems: "flex-start", backgroundColor: "#FEF3F2", borderRadius: 14, flexDirection: "row", gap: 10, padding: 14 },

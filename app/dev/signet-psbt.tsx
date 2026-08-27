@@ -321,7 +321,8 @@ export default function SignetPsbtScreen() {
           accessibilityRole="button"
           onPress={() => void loadUtxos()}
           disabled={busy}
-          style={({ pressed }) => [styles.button, pressed && styles.buttonPressed, busy && styles.buttonDisabled]}
+          android_ripple={{ color: "rgba(255, 255, 255, 0.24)" }}
+          style={[styles.button, busy && styles.buttonDisabled]}
         >
           {busy && !review ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.buttonText}>Buscar UTXOs</Text>}
         </Pressable>
@@ -410,7 +411,8 @@ export default function SignetPsbtScreen() {
             <Pressable
               accessibilityRole="button"
               onPress={buildPsbt}
-              style={({ pressed }) => [styles.button, pressed && styles.buttonPressed]}
+              android_ripple={{ color: "rgba(255, 255, 255, 0.24)" }}
+              style={styles.button}
             >
               <Text style={styles.buttonText}>Montar PSBT</Text>
             </Pressable>
@@ -439,7 +441,8 @@ export default function SignetPsbtScreen() {
             <Pressable
               accessibilityRole="button"
               onPress={() => void copyUnsigned()}
-              style={({ pressed }) => [styles.secondaryButton, pressed && styles.buttonPressed]}
+              android_ripple={{ color: "rgba(10, 132, 255, 0.16)" }}
+              style={styles.secondaryButton}
             >
               <MaterialIcons name="content-copy" size={18} color="#0A84FF" />
               <Text style={styles.secondaryButtonText}>Copiar PSBT</Text>
@@ -463,7 +466,8 @@ export default function SignetPsbtScreen() {
               <Pressable
                 accessibilityRole="button"
                 onPress={() => void pasteSigned()}
-                style={({ pressed }) => [styles.secondaryButton, styles.flex, pressed && styles.buttonPressed]}
+                android_ripple={{ color: "rgba(10, 132, 255, 0.16)" }}
+                style={[styles.secondaryButton, styles.flex]}
               >
                 <MaterialIcons name="content-paste" size={18} color="#0A84FF" />
                 <Text style={styles.secondaryButtonText}>Colar</Text>
@@ -471,7 +475,8 @@ export default function SignetPsbtScreen() {
               <Pressable
                 accessibilityRole="button"
                 onPress={reviewSigned}
-                style={({ pressed }) => [styles.button, styles.flex, pressed && styles.buttonPressed]}
+                android_ripple={{ color: "rgba(255, 255, 255, 0.24)" }}
+                style={[styles.button, styles.flex]}
               >
                 <Text style={styles.buttonText}>Revisar</Text>
               </Pressable>
@@ -539,11 +544,8 @@ export default function SignetPsbtScreen() {
                 accessibilityRole="button"
                 onPress={confirmBroadcast}
                 disabled={busy}
-                style={({ pressed }) => [
-                  styles.dangerButton,
-                  pressed && styles.buttonPressed,
-                  busy && styles.buttonDisabled,
-                ]}
+                android_ripple={{ color: "rgba(255, 255, 255, 0.24)" }}
+                style={[styles.dangerButton, busy && styles.buttonDisabled]}
               >
                 {busy ? (
                   <ActivityIndicator color="#FFFFFF" />
@@ -613,7 +615,6 @@ const styles = StyleSheet.create({
     alignItems: "center", backgroundColor: "#0A84FF", borderRadius: 14,
     justifyContent: "center", minHeight: 52,
   },
-  buttonPressed: { opacity: 0.86 },
   buttonDisabled: { opacity: 0.7 },
   buttonText: { color: "#FFFFFF", fontSize: 15, fontWeight: "700" },
   buttonPair: { flexDirection: "row", gap: 10 },
