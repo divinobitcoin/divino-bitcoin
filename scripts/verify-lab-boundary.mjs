@@ -30,6 +30,7 @@ const runtimeRoots = [
 const labModules = new Set([
   "shared/bip84-derivation",
   "shared/mnemonic-recovery",
+  "shared/psbt-signer",
   "shared/public-bip-vectors",
   "shared/signet-derivation-policy",
 ]);
