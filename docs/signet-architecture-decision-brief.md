@@ -9,6 +9,16 @@ Em 20 de agosto de 2026, o proprietário selecionou a combinação **C, C, A, A*
 
 Essas escolhas não autorizam conexão a serviços de cadeia, geração ou importação de mnemonic, derivação de chaves, construção/assinatura de PSBT ou transmissão. O próximo marco limita-se a contratos locais, vetores públicos e testes determinísticos.
 
+> **Superado em parte, 27 de agosto de 2026.** O parágrafo acima está **preservado como registro**
+> e **não foi apagado**, mas foi superado *dentro da faixa LAB* por `docs/decisions/LAB-LANE-001.md`.
+>
+> Em Signet ou Demo, com material descartável e valor econômico zero, geração de mnemonic,
+> derivação, construção e assinatura de PSBT e **transmissão** são livres e não exigem gate.
+>
+> Fora dessas condições, o parágrafo acima continua valendo integralmente. A sequência recomendada
+> mais adiante neste documento — on-chain sem broadcast, vetores, PSBT offline, LDK, LSP — permanece
+> como **recomendação de engenharia**, e deixa de ser restrição de autorização.
+
 ## Emenda de 26 de agosto de 2026 — público de pré-lançamento
 
 **Decisão revisada:** o público de pré-lançamento passa de **uso pessoal** para **grupo fechado**. Ambas as categorias já constavam como alternativas mapeadas na tabela "Decisões que não podem ser inferidas automaticamente" deste documento; esta emenda apenas seleciona a segunda em vez da primeira.
