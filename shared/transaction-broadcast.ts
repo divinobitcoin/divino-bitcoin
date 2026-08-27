@@ -1,4 +1,4 @@
-import { hex } from "@scure/base";
+import { base64, hex } from "@scure/base";
 import * as btc from "@scure/btc-signer";
 
 import { assertSignetOnly } from "./bitcoin-network";
@@ -205,6 +205,120 @@ export function reviewSignedTransaction(params: {
     vsize,
     irreversible: true,
     warnings,
+  };
+}
+
+/**
+ * Soma os valores das entradas declaradas numa PSBT, lendo o campo
+ * `witnessUtxo` de cada uma.
+ *
+ * Existe porque a transação **crua** não carrega o valor das entradas — só os
+ * outpoints — e sem esse número não há taxa calculável. A PSBT carrega, e é a
+ * fonte certa: lê-lo do payload em vez do estado da interface mantém a revisão
+ * vinculada aos bytes, que é o que o `T2` exige. Uma interface que guardasse o
+ * total de entrada numa variável própria estaria confiando na sua memória do
+ * que montou, e não no que vai ser transmitido.
+ *
+ * Lança se qualquer entrada não declarar `witnessUtxo`. Recusar é correto:
+ * somar só as que declararam produziria uma taxa aparente menor que a real, e o
+ * erro apareceria como um número tranquilizador em vez de uma falha.
+ */
+export function sumPsbtInputAmounts(psbtBase64: string): number {
+  let tx: btc.Transaction;
+  try {
+    tx = btc.Transaction.fromPSBT(base64.decode(psbtBase64));
+  } catch (cause) {
+    throw new Error("Não foi possível ler a PSBT.", { cause });
+  }
+
+  if (tx.inputsLength === 0) {
+    throw new Error("PSBT sem entradas.");
+  }
+
+  let total = 0;
+  for (let i = 0; i < tx.inputsLength; i++) {
+    const amount = tx.getInput(i).witnessUtxo?.amount;
+    if (amount === undefined) {
+      throw new Error(
+        `Entrada ${i} da PSBT não declara witnessUtxo, então o valor gasto por ela é desconhecido. ` +
+          `Sem isso a taxa não pode ser calculada e a transação não deve ser revisada nem transmitida.`,
+      );
+    }
+    total += Number(amount);
+  }
+
+  return total;
+}
+
+// ---------------------------------------------------------------------------
+// Finalização
+// ---------------------------------------------------------------------------
+//
+// Finalizar NÃO é assinar. A operação só monta a testemunha a partir das
+// assinaturas parciais que já existem na PSBT; nenhuma chave privada é lida,
+// derivada ou usada.
+//
+// Por isso mora aqui e não em shared/psbt-signer.ts. A interface do aplicativo
+// precisa finalizar uma PSBT assinada em outro lugar, e o guard de fronteira
+// proíbe `app/` de importar módulos LAB. Deixar o finalize do lado LAB
+// impediria a carteira de completar o fluxo PSBT sem nenhum ganho de segurança.
+
+export type FinalizedTransaction = {
+  rawTxHex: string;
+  txid: string;
+  /** vsize real, medido na transação assinada. Comparável com a estimativa da coin selection. */
+  vsize: number;
+  weight: number;
+  inputCount: number;
+  outputCount: number;
+};
+
+/**
+ * Finaliza uma PSBT assinada e extrai a transação transmissível.
+ *
+ * `finalize()` valida as assinaturas; uma PSBT incompleta ou com assinatura
+ * inválida faz esta função lançar em vez de devolver algo intransmissível.
+ *
+ * Confere que finalizar não alterou as saídas. Não deveria alterar — mas
+ * "não deveria" é exatamente o que se verifica quando o assunto é dinheiro.
+ */
+export function finalizeSignedPsbt(params: {
+  signedPsbtBase64: string;
+  network: BroadcastNetwork;
+}): FinalizedTransaction {
+  assertNetwork(params.network);
+
+  const tx = btc.Transaction.fromPSBT(base64.decode(params.signedPsbtBase64));
+
+  const outputsAntes = Array.from({ length: tx.outputsLength }, (_, i) => {
+    const output = tx.getOutput(i);
+    return `${output.amount}:${hex.encode(output.script ?? new Uint8Array())}`;
+  });
+
+  tx.finalize();
+
+  if (!tx.isFinal) {
+    throw new Error("A PSBT não ficou final após finalize(). Provável assinatura faltando.");
+  }
+
+  const outputsDepois = Array.from({ length: tx.outputsLength }, (_, i) => {
+    const output = tx.getOutput(i);
+    return `${output.amount}:${hex.encode(output.script ?? new Uint8Array())}`;
+  });
+
+  if (outputsAntes.join("|") !== outputsDepois.join("|")) {
+    throw new Error(
+      "Erro interno: finalize() alterou as saídas da transação. Não transmitir.",
+    );
+  }
+
+  return {
+    rawTxHex: hex.encode(tx.extract()),
+    txid: tx.id,
+    vsize: tx.vsize,
+    weight: tx.weight,
+    inputCount: tx.inputsLength,
+    outputCount: tx.outputsLength,
   };
 }
 

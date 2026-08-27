@@ -3,6 +3,7 @@ import { base64, hex } from "@scure/base";
 import * as btc from "@scure/btc-signer";
 
 import { assertSignetOnly } from "./bitcoin-network";
+import { finalizeSignedPsbt, type FinalizedTransaction } from "./transaction-broadcast";
 
 /**
  * Assinatura de PSBT em JavaScript — **TEST/LAB PERMANENTE**.
@@ -47,6 +48,11 @@ import { assertSignetOnly } from "./bitcoin-network";
 /** Rede aceita. Literal de propósito: Mainnet não existe no tipo. */
 export type SignerNetwork = "signet";
 
+// Reexportados por conveniência. Finalizar NÃO é operação de segredo: mora em
+// shared/transaction-broadcast.ts, fora da faixa LAB, para que a interface do
+// aplicativo possa usá-lo sem violar o guard de fronteira.
+export { finalizeSignedPsbt, type FinalizedTransaction };
+
 export type SignPsbtRequest = {
   psbtBase64: string;
   /** Seed em hex. DESCARTÁVEL. Ver o cabeçalho deste arquivo. */
@@ -66,15 +72,6 @@ export type SignedPsbt = {
   signedInputCount: number;
 };
 
-export type FinalizedTransaction = {
-  rawTxHex: string;
-  txid: string;
-  /** vsize real, medido na transação assinada. Comparável com a estimativa da coin selection. */
-  vsize: number;
-  weight: number;
-  inputCount: number;
-  outputCount: number;
-};
 
 function assertNetwork(network: SignerNetwork): void {
   assertSignetOnly(network);
@@ -141,55 +138,6 @@ export function signPsbtWithTestSeed(request: SignPsbtRequest): SignedPsbt {
   return {
     signedPsbtBase64: base64.encode(tx.toPSBT()),
     signedInputCount: tx.inputsLength,
-  };
-}
-
-/**
- * Finaliza uma PSBT assinada e extrai a transação transmissível.
- *
- * `finalize()` valida as assinaturas; uma PSBT incompleta ou com assinatura
- * inválida faz esta função lançar em vez de devolver algo intransmissível.
- *
- * Confere que finalizar não alterou as saídas. Não deveria alterar — mas
- * "não deveria" é exatamente o que se verifica quando o assunto é dinheiro.
- */
-export function finalizeSignedPsbt(params: {
-  signedPsbtBase64: string;
-  network: SignerNetwork;
-}): FinalizedTransaction {
-  assertNetwork(params.network);
-
-  const tx = btc.Transaction.fromPSBT(base64.decode(params.signedPsbtBase64));
-
-  const outputsAntes = Array.from({ length: tx.outputsLength }, (_, i) => {
-    const output = tx.getOutput(i);
-    return `${output.amount}:${hex.encode(output.script ?? new Uint8Array())}`;
-  });
-
-  tx.finalize();
-
-  if (!tx.isFinal) {
-    throw new Error("A PSBT não ficou final após finalize(). Provável assinatura faltando.");
-  }
-
-  const outputsDepois = Array.from({ length: tx.outputsLength }, (_, i) => {
-    const output = tx.getOutput(i);
-    return `${output.amount}:${hex.encode(output.script ?? new Uint8Array())}`;
-  });
-
-  if (outputsAntes.join("|") !== outputsDepois.join("|")) {
-    throw new Error(
-      "Erro interno: finalize() alterou as saídas da transação. Não transmitir.",
-    );
-  }
-
-  return {
-    rawTxHex: hex.encode(tx.extract()),
-    txid: tx.id,
-    vsize: tx.vsize,
-    weight: tx.weight,
-    inputCount: tx.inputsLength,
-    outputCount: tx.outputsLength,
   };
 }
 

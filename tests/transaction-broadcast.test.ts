@@ -5,13 +5,14 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { EsploraConfig, EsploraUtxo } from "../shared/esplora-client";
 import { buildUnsignedPsbt } from "../shared/psbt-builder";
-import { signAndFinalizeWithTestSeed } from "../shared/psbt-signer";
+import { signAndFinalizeWithTestSeed, signPsbtWithTestSeed } from "../shared/psbt-signer";
 import {
   BroadcastRejectedError,
   MIN_RELAY_FEE_RATE_SATS_PER_VBYTE,
   REVIEW_HIGH_FEE_SATS,
   broadcastRawTransaction,
   reviewSignedTransaction,
+  sumPsbtInputAmounts,
 } from "../shared/transaction-broadcast";
 
 const SEED_HEX = "000102030405060708090a0b0c0d0e0f";
@@ -427,5 +428,56 @@ describe("broadcastRawTransaction — entrada inválida não chega na rede", () 
       }),
     ).rejects.toThrow();
     expect((fetchImpl as ReturnType<typeof vi.fn>).mock.calls).toHaveLength(0);
+  });
+});
+
+describe("sumPsbtInputAmounts — o total de entrada sai da PSBT, não da interface", () => {
+  it("soma o witnessUtxo de uma entrada", () => {
+    const built = buildUnsignedPsbt({
+      inputs: [{ utxo: utxo(100_000), ownerAddress: ADDR_0 }],
+      recipientAddress: ADDR_1,
+      recipientSats: 60_000,
+      changeAddress: ADDR_CHANGE,
+      changeSats: 39_000,
+      network: "signet",
+    });
+    expect(sumPsbtInputAmounts(built.psbtBase64)).toBe(100_000);
+  });
+
+  it("soma várias entradas", () => {
+    const built = buildUnsignedPsbt({
+      inputs: [
+        { utxo: utxo(60_000, { txid: TXID_A }), ownerAddress: ADDR_0 },
+        { utxo: utxo(40_000, { txid: "c".repeat(64) }), ownerAddress: ADDR_1 },
+      ],
+      recipientAddress: ADDR_1,
+      recipientSats: 60_000,
+      changeAddress: ADDR_CHANGE,
+      changeSats: 39_000,
+      network: "signet",
+    });
+    expect(sumPsbtInputAmounts(built.psbtBase64)).toBe(100_000);
+  });
+
+  it("continua legível depois da PSBT ser assinada", () => {
+    const built = buildUnsignedPsbt({
+      inputs: [{ utxo: utxo(100_000), ownerAddress: ADDR_0 }],
+      recipientAddress: ADDR_1,
+      recipientSats: 60_000,
+      changeAddress: ADDR_CHANGE,
+      changeSats: 39_000,
+      network: "signet",
+    });
+    const signed = signPsbtWithTestSeed({
+      psbtBase64: built.psbtBase64,
+      seedHex: SEED_HEX,
+      inputPaths: [PATH_0],
+      network: "signet",
+    });
+    expect(sumPsbtInputAmounts(signed.signedPsbtBase64)).toBe(100_000);
+  });
+
+  it("recusa payload que não é PSBT", () => {
+    expect(() => sumPsbtInputAmounts("bm90IHVtYSBQU0JU")).toThrow(/Não foi possível ler a PSBT/);
   });
 });
