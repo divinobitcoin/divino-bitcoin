@@ -17,6 +17,7 @@ function WalletNavigator() {
       <Stack.Screen name="payment-review" options={{ title: "Revisar pagamento", presentation: "modal" }} />
       <Stack.Screen name="transaction/[id]" options={{ title: "Detalhe" }} />
       <Stack.Screen name="dev/signet-watch" options={{ title: "Observar endereço Signet" }} />
+      <Stack.Screen name="dev/signet-psbt" options={{ title: "Enviar em Signet" }} />
     </Stack>
   );
 }

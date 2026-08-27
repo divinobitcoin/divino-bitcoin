@@ -196,6 +196,19 @@ export default function AndroidSettingsTab() {
               <Text accessibilityRole="button" onPress={() => router.push("/dev/signet-watch")} style={styles.textAction}>ABRIR →</Text>
             </View>
           </View>
+          <View style={styles.actionRow}>
+            <View style={styles.iconBox}>
+              <MaterialIcons name="send" size={21} color="#0A84FF" />
+            </View>
+            <View style={styles.flex}>
+              <Text style={styles.settingTitle}>Enviar em {SIGNET_NETWORK.label}</Text>
+              <Text style={styles.settingDescription}>
+                Monta a transação, exporta a PSBT para assinatura externa, revisa o que voltou lendo os próprios
+                bytes e transmite. Esta tela não assina — nenhuma chave privada passa por ela.
+              </Text>
+              <Text accessibilityRole="button" onPress={() => router.push("/dev/signet-psbt")} style={styles.textAction}>ABRIR →</Text>
+            </View>
+          </View>
         </View>
 
         <Text style={styles.sectionLabel}>CONEXÃO LIGHTNING</Text>
