@@ -21,6 +21,15 @@ export interface ScreenContainerProps extends ViewProps {
    * Additional className for the SafeAreaView (content layer).
    */
   safeAreaClassName?: string;
+  /**
+   * Estilo aplicado à View externa, que pinta a tela inteira.
+   *
+   * Existe porque o fundo é decisão de paleta, e paleta mora em TypeScript.
+   * Passar cor por classe Tailwind de valor arbitrário funciona, mas depende do
+   * CSS ser regerado pelo transformador do NativeWind — um recarregamento de
+   * JavaScript não faz isso, e a tela fica com a cor antiga sem nenhum aviso.
+   */
+  containerStyle?: ViewProps["style"];
 }
 
 /**
@@ -44,6 +53,7 @@ export function ScreenContainer({
   className,
   containerClassName,
   safeAreaClassName,
+  containerStyle,
   style,
   ...props
 }: ScreenContainerProps) {
@@ -54,6 +64,7 @@ export function ScreenContainer({
         "bg-background",
         containerClassName
       )}
+      style={containerStyle}
       {...props}
     >
       <SafeAreaView

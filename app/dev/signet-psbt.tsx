@@ -283,7 +283,7 @@ export default function SignetPsbtScreen() {
   }
 
   return (
-    <ScreenContainer containerClassName="bg-[#080B0C]" safeAreaClassName="bg-[#080B0C]">
+    <ScreenContainer containerStyle={styles.tela} style={styles.tela}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <Text style={styles.eyebrow}>FERRAMENTA DE TESTE — NÃO É A CARTEIRA FINAL</Text>
@@ -586,6 +586,7 @@ export default function SignetPsbtScreen() {
 }
 
 const styles = StyleSheet.create({
+  tela: { backgroundColor: cores.fundo },
   content: { gap: 14, padding: 20, paddingBottom: 48 },
   header: { gap: 4, marginTop: 4 },
   eyebrow: { color: cores.aviso, fontSize: 11, fontWeight: "800", letterSpacing: 0.8 },

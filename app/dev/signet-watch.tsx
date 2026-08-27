@@ -3,6 +3,7 @@ import { useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { ScreenContainer } from "@/components/screen-container";
+import { cores } from "@/constants/palette";
 import { haptic } from "@/lib/haptics";
 import { SIGNET_NETWORK } from "@/shared/bitcoin-network";
 import { fetchAddressSummary, type EsploraAddressSummary } from "@/shared/esplora-client";
@@ -52,7 +53,7 @@ export default function SignetWatchScreen() {
   }
 
   return (
-    <ScreenContainer containerClassName="bg-[#F7F9FC]" safeAreaClassName="bg-[#F7F9FC]">
+    <ScreenContainer containerStyle={styles.tela} style={styles.tela}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <Text style={styles.eyebrow}>FERRAMENTA DE TESTE — NÃO É A CARTEIRA FINAL</Text>
@@ -60,7 +61,7 @@ export default function SignetWatchScreen() {
         </View>
 
         <View style={styles.noticeCard}>
-          <MaterialIcons name="info" size={20} color="#B85A00" />
+          <MaterialIcons name="info" size={20} color={cores.aviso} />
           <View style={styles.flex}>
             <Text style={styles.noticeTitle}>Endereço de observação manual</Text>
             <Text style={styles.noticeText}>
@@ -77,7 +78,7 @@ export default function SignetWatchScreen() {
             value={address}
             onChangeText={setAddress}
             placeholder="tb1q..."
-            placeholderTextColor="#98A2B3"
+            placeholderTextColor={cores.textoTerciario}
             autoCapitalize="none"
             autoCorrect={false}
             style={styles.input}
@@ -88,15 +89,15 @@ export default function SignetWatchScreen() {
           accessibilityRole="button"
           onPress={() => void checkAddress()}
           disabled={status === "loading"}
-          android_ripple={{ color: "rgba(255, 255, 255, 0.24)" }}
+          android_ripple={{ color: cores.ondulacaoEscura }}
           style={[styles.button, status === "loading" && styles.buttonDisabled]}
         >
-          {status === "loading" ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.buttonText}>Consultar saldo real</Text>}
+          {status === "loading" ? <ActivityIndicator color={cores.acaoPrimariaTexto} /> : <Text style={styles.buttonText}>Consultar saldo real</Text>}
         </Pressable>
 
         {status === "error" && (
           <View style={styles.errorCard}>
-            <MaterialIcons name="error-outline" size={18} color="#B42318" />
+            <MaterialIcons name="error-outline" size={18} color={cores.perigo} />
             <Text style={styles.errorText}>{errorMessage}</Text>
           </View>
         )}
@@ -129,32 +130,33 @@ export default function SignetWatchScreen() {
 }
 
 const styles = StyleSheet.create({
+  tela: { backgroundColor: cores.fundo },
   content: { gap: 16, padding: 20, paddingBottom: 32 },
   header: { gap: 4, marginTop: 4 },
-  eyebrow: { color: "#B85A00", fontSize: 11, fontWeight: "800", letterSpacing: 0.8 },
-  title: { color: "#101828", fontSize: 24, fontWeight: "700", letterSpacing: -0.4, marginTop: 4 },
+  eyebrow: { color: cores.aviso, fontSize: 11, fontWeight: "800", letterSpacing: 0.8 },
+  title: { color: cores.textoPrimario, fontSize: 24, fontWeight: "700", letterSpacing: -0.4, marginTop: 4 },
   flex: { flex: 1 },
-  noticeCard: { alignItems: "flex-start", backgroundColor: "#FFF3E5", borderRadius: 16, flexDirection: "row", gap: 12, padding: 15 },
-  noticeTitle: { color: "#8A4B00", fontSize: 13, fontWeight: "800", marginBottom: 4 },
-  noticeText: { color: "#966122", fontSize: 12, lineHeight: 17 },
+  noticeCard: { alignItems: "flex-start", backgroundColor: cores.avisoSuperficie, borderRadius: 16, flexDirection: "row", gap: 12, padding: 15 },
+  noticeTitle: { color: cores.aviso, fontSize: 13, fontWeight: "800", marginBottom: 4 },
+  noticeText: { color: cores.textoSecundario, fontSize: 12, lineHeight: 17 },
   inputGroup: { gap: 6 },
-  label: { color: "#667085", fontSize: 12, fontWeight: "700", letterSpacing: 0.4 },
+  label: { color: cores.textoSecundario, fontSize: 12, fontWeight: "700", letterSpacing: 0.4 },
   input: {
-    backgroundColor: "#FFFFFF", borderColor: "#E7EAF0", borderRadius: 14, borderWidth: 1,
-    color: "#101828", fontSize: 15, paddingHorizontal: 14, paddingVertical: 13,
+    backgroundColor: cores.superficieAlta, borderColor: cores.borda, borderRadius: 14, borderWidth: 1,
+    color: cores.textoPrimario, fontSize: 15, paddingHorizontal: 14, paddingVertical: 13,
   },
-  button: { alignItems: "center", backgroundColor: "#0A84FF", borderRadius: 14, justifyContent: "center", minHeight: 52 },
+  button: { alignItems: "center", backgroundColor: cores.acaoPrimaria, borderRadius: 14, justifyContent: "center", minHeight: 52 },
   buttonDisabled: { opacity: 0.7 },
-  buttonText: { color: "#FFFFFF", fontSize: 15, fontWeight: "700" },
-  errorCard: { alignItems: "flex-start", backgroundColor: "#FEF3F2", borderRadius: 14, flexDirection: "row", gap: 10, padding: 14 },
-  errorText: { color: "#B42318", flex: 1, fontSize: 13, lineHeight: 18 },
-  resultCard: { backgroundColor: "#0D1117", borderRadius: 20, gap: 4, padding: 20 },
-  resultLabel: { color: "#B9C3D0", fontSize: 13, fontWeight: "600" },
-  resultBalance: { color: "#FFFFFF", fontSize: 30, fontVariant: ["tabular-nums"], fontWeight: "800", letterSpacing: -0.8, marginTop: 6 },
-  resultMempool: { color: "#F7931A", fontSize: 13, fontWeight: "600", marginTop: 4 },
-  resultDivider: { backgroundColor: "#22262E", height: StyleSheet.hairlineWidth, marginVertical: 12 },
+  buttonText: { color: cores.acaoPrimariaTexto, fontSize: 15, fontWeight: "700" },
+  errorCard: { alignItems: "flex-start", backgroundColor: cores.perigoSuperficie, borderRadius: 14, flexDirection: "row", gap: 10, padding: 14 },
+  errorText: { color: cores.perigo, flex: 1, fontSize: 13, lineHeight: 18 },
+  resultCard: { backgroundColor: cores.superficie, borderRadius: 20, gap: 4, padding: 20 },
+  resultLabel: { color: cores.textoSecundario, fontSize: 13, fontWeight: "600" },
+  resultBalance: { color: cores.textoPrimario, fontSize: 30, fontVariant: ["tabular-nums"], fontWeight: "800", letterSpacing: -0.8, marginTop: 6 },
+  resultMempool: { color: cores.rede, fontSize: 13, fontWeight: "600", marginTop: 4 },
+  resultDivider: { backgroundColor: cores.borda, height: StyleSheet.hairlineWidth, marginVertical: 12 },
   resultRow: { alignItems: "center", flexDirection: "row", justifyContent: "space-between", paddingVertical: 4 },
-  resultRowLabel: { color: "#8793A5", fontSize: 13 },
-  resultRowValue: { color: "#FFFFFF", fontSize: 13, fontVariant: ["tabular-nums"], fontWeight: "700" },
-  resultSource: { color: "#5B6472", fontSize: 10, marginTop: 14 },
+  resultRowLabel: { color: cores.textoSecundario, fontSize: 13 },
+  resultRowValue: { color: cores.textoPrimario, fontSize: 13, fontVariant: ["tabular-nums"], fontWeight: "700" },
+  resultSource: { color: cores.textoTerciario, fontSize: 10, marginTop: 14 },
 });
