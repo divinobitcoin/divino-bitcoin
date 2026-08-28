@@ -287,11 +287,10 @@ async function commandSend(args: string[]): Promise<void> {
   console.log("Transmitindo...\n");
 
   try {
+    // Transmite a REVISÃO que foi impressa acima, não outra variável.
     const resultado = await broadcastRawTransaction({
       config: ESPLORA,
-      rawTxHex: final.rawTxHex,
-      expectedTxid: final.txid,
-      network: NETWORK,
+      review: revisao,
     });
 
     console.log(`ACEITA PELO NÓ.\n`);

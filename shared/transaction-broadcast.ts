@@ -62,7 +62,29 @@ export type ReviewedOutput = {
   isChange: boolean;
 };
 
+/**
+ * Marca de origem da revisão. **Não existe em tempo de execução** — é só um
+ * símbolo de tipo. Serve para que o compilador recuse um objeto montado à mão
+ * onde se espera uma revisão de verdade, produzida por
+ * `reviewSignedTransaction`.
+ *
+ * Impede o acidente, não a sabotagem: quem escrever `as TransactionReview`
+ * passa. Por isso o precheck de bytes dentro de `broadcastRawTransaction`
+ * continua existindo e não é redundante.
+ */
+declare const marcaDeRevisao: unique symbol;
+
 export type TransactionReview = {
+  readonly [marcaDeRevisao]: true;
+  /**
+   * Os bytes **exatos** que foram revisados, em hexadecimal.
+   *
+   * Mora aqui de propósito. Enquanto os bytes e o txid revisado eram dois
+   * valores soltos, quem chamava podia — sem erro de compilação — exibir uma
+   * transação e transmitir outra. Carregando os dois no mesmo objeto, a
+   * divergência deixa de ser possível por descuido.
+   */
+  rawTxHex: string;
   txid: string;
   network: BroadcastNetwork;
   outputs: ReviewedOutput[];
@@ -192,7 +214,10 @@ export function reviewSignedTransaction(params: {
     warnings.push("Todas as saídas são de troco: nenhum valor sai para um destinatário externo.");
   }
 
+  // A marca não existe em tempo de execução; a asserção é o único lugar do
+  // módulo que a produz, e é isso que faz dela um selo de origem.
   return {
+    rawTxHex,
     txid: tx.id,
     network,
     outputs,
@@ -205,7 +230,7 @@ export function reviewSignedTransaction(params: {
     vsize,
     irreversible: true,
     warnings,
-  };
+  } as TransactionReview;
 }
 
 /**
@@ -348,8 +373,19 @@ type FetchLike = typeof fetch;
  *
  * **Este é o passo que não volta.**
  *
- * `expectedTxid` é obrigatório de propósito. Ele obriga quem chama a saber o
- * que está transmitindo, e é conferido **duas vezes, contra fontes diferentes**:
+ * A função recebe a **revisão inteira**, não bytes e txid soltos. Isso é o que
+ * garante que o que vai para a rede é o mesmo que foi revisado e mostrado ao
+ * usuário: os três valores — bytes, txid e rede — saem do mesmo objeto, e não
+ * existe assinatura de chamada capaz de misturá-los.
+ *
+ * Antes, `rawTxHex` e `expectedTxid` eram argumentos independentes. Nada no
+ * compilador impedia exibir uma transação e transmitir outra; só a disciplina
+ * de quem chamava. Os dois chamadores do projeto faziam exatamente isso — a
+ * interface guardava os bytes num estado e a revisão em outro, e a ferramenta
+ * de laboratório imprimia a revisão e transmitia a partir de outra variável.
+ * Funcionava por coincidência, não por construção.
+ *
+ * O txid ainda é conferido **duas vezes, contra fontes diferentes**:
  *
  * 1. **Antes da rede**, contra os próprios bytes de `rawTxHex`. O txid é
  *    recalculado localmente a partir do que seria enviado. Divergindo, a função
@@ -364,10 +400,17 @@ type FetchLike = typeof fetch;
  * diferentes de quem chama, revisão feita sobre uma transação e transmissão de
  * outra. A segunda pega divergência do lado de lá.
  *
- * **O que a primeira NÃO faz:** ela compara dois argumentos entre si, não
- * compara a transação com a intenção do usuário. Se `expectedTxid` for derivado
- * do mesmo `rawTxHex` no mesmo instante, a checagem é tautológica. Ligar
- * `expectedTxid` à PSBT efetivamente revisada é problema separado, ainda aberto.
+ * **A primeira parece tautológica agora, e não é.** Com a revisão inteira como
+ * argumento, `rawTxHex` e `txid` já vêm do mesmo objeto, então em uso normal
+ * ela nunca dispara. Ela continua porque a marca de tipo impede o descuido, não
+ * a sabotagem: um objeto forjado com `as TransactionReview`, ou uma revisão
+ * mutada depois de criada, passa pelo compilador. O precheck lê os bytes de
+ * novo e é a única coisa entre isso e a rede.
+ *
+ * **O que nenhuma das duas faz:** conferir que a transação corresponde ao que o
+ * usuário quis. Elas garantem que os bytes transmitidos são os bytes revisados;
+ * garantir que os bytes revisados são os desejados é papel da tela de revisão e
+ * do olho de quem confirma.
  *
  * Não faz retentativa automática. Retransmitir a mesma transação é inofensivo
  * (mesmo txid), mas repetir cegamente uma chamada cujo resultado é ambíguo é
@@ -376,12 +419,15 @@ type FetchLike = typeof fetch;
  */
 export async function broadcastRawTransaction(params: {
   config: EsploraConfig;
-  rawTxHex: string;
-  expectedTxid: string;
-  network: BroadcastNetwork;
+  /**
+   * A revisão produzida por `reviewSignedTransaction`. Os bytes, o txid e a
+   * rede saem todos daqui — não há como passar um que não combine com o outro.
+   */
+  review: TransactionReview;
   fetchImpl?: FetchLike;
 }): Promise<BroadcastResult> {
-  const { config, rawTxHex, expectedTxid, network, fetchImpl = fetch } = params;
+  const { config, review, fetchImpl = fetch } = params;
+  const { rawTxHex, txid: expectedTxid, network } = review;
 
   assertNetwork(network);
 

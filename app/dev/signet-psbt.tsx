@@ -94,7 +94,6 @@ export default function SignetPsbtScreen() {
   // Fase 3 — revisão e transmissão
   const [signedPsbt, setSignedPsbt] = useState("");
   const [review, setReview] = useState<TransactionReview | null>(null);
-  const [rawTxHex, setRawTxHex] = useState("");
   const [broadcastTxid, setBroadcastTxid] = useState("");
 
   const spendable = utxos ? sumUtxoValueSats(utxos.filter((u) => u.confirmed)) : 0;
@@ -106,7 +105,6 @@ export default function SignetPsbtScreen() {
     setBuildNotes([]);
     setSignedPsbt("");
     setReview(null);
-    setRawTxHex("");
     setBroadcastTxid("");
     setError("");
   }
@@ -233,7 +231,6 @@ export default function SignetPsbtScreen() {
         changeAddresses: changeAddress.trim() ? [changeAddress.trim()] : [],
       });
 
-      setRawTxHex(finalized.rawTxHex);
       setReview(result);
       setPhase("revisada");
       haptic.success();
@@ -262,11 +259,10 @@ export default function SignetPsbtScreen() {
     setBusy(true);
     setError("");
     try {
+      // Os bytes saem da própria revisão que foi exibida e confirmada.
       const result = await broadcastRawTransaction({
         config: { baseUrl: DEFAULT_ESPLORA_BASE_URL },
-        rawTxHex,
-        expectedTxid: review.txid,
-        network: "signet",
+        review,
       });
       setBroadcastTxid(result.txid);
       haptic.success();

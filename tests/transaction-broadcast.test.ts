@@ -14,6 +14,7 @@ import {
   reviewSignedTransaction,
   sumPsbtInputAmounts,
 } from "../shared/transaction-broadcast";
+import type { TransactionReview } from "../shared/transaction-broadcast";
 
 const SEED_HEX = "000102030405060708090a0b0c0d0e0f";
 const PATH_0 = "m/84'/1'/0'/0/0";
@@ -80,6 +81,38 @@ function mockFetch(responses: Array<{ ok?: boolean; status?: number; text: strin
   return fn as unknown as typeof fetch;
 }
 
+
+/** Revisão de verdade, produzida pelo módulo. É o que broadcast aceita. */
+function revisaoDe(tx: ReturnType<typeof signedTx>, changeAddresses: string[] = [ADDR_CHANGE]) {
+  return reviewSignedTransaction({
+    rawTxHex: tx.rawTxHex,
+    network: "signet",
+    totalInputSats: tx.inputSats,
+    changeAddresses,
+  });
+}
+
+/**
+ * Revisão forjada: objeto que o compilador só aceita com asserção. Existe para
+ * provar que o precheck de bytes ainda barra o que a marca de tipo não barra.
+ */
+function revisaoForjada(campos: { rawTxHex: string; txid: string; network?: string }) {
+  return {
+    network: "signet",
+    ...campos,
+    outputs: [],
+    inputCount: 1,
+    totalInputSats: 100_000,
+    totalOutputSats: 99_000,
+    leavingWalletSats: 99_000,
+    feeSats: 1_000,
+    feeRateSatsPerVByte: 7,
+    vsize: 141,
+    irreversible: true as const,
+    warnings: [],
+  } as unknown as TransactionReview;
+}
+
 describe("reviewSignedTransaction — o resumo sai dos bytes, não da intenção", () => {
   it("descreve destinatário, troco, taxa e tamanho a partir da transação crua", () => {
     const tx = signedTx();
@@ -126,6 +159,15 @@ describe("reviewSignedTransaction — o resumo sai dos bytes, não da intenção
 
     expect(review.outputs.every((output) => !output.isChange)).toBe(true);
     expect(review.leavingWalletSats).toBe(99_000);
+  });
+
+  it("a revisão carrega os bytes que a produziram", () => {
+    // É isto que torna impossível revisar uma transação e transmitir outra:
+    // os bytes deixam de ser um argumento solto e passam a ser parte da revisão.
+    const tx = signedTx();
+    const review = revisaoDe(tx);
+    expect(review.rawTxHex).toBe(tx.rawTxHex);
+    expect(btc.Transaction.fromRaw(hex.decode(review.rawTxHex)).id).toBe(review.txid);
   });
 
   it("o txid da revisão bate com o da transação assinada", () => {
@@ -234,9 +276,7 @@ describe("broadcastRawTransaction", () => {
 
     await broadcastRawTransaction({
       config: CONFIG,
-      rawTxHex: tx.rawTxHex,
-      expectedTxid: tx.txid,
-      network: "signet",
+      review: revisaoDe(tx),
       fetchImpl,
     });
 
@@ -252,9 +292,7 @@ describe("broadcastRawTransaction", () => {
 
     await broadcastRawTransaction({
       config: { baseUrl: "https://mempool.space/signet/api/" },
-      rawTxHex: tx.rawTxHex,
-      expectedTxid: tx.txid,
-      network: "signet",
+      review: revisaoDe(tx),
       fetchImpl,
     });
 
@@ -267,9 +305,7 @@ describe("broadcastRawTransaction", () => {
     const tx = signedTx();
     const result = await broadcastRawTransaction({
       config: CONFIG,
-      rawTxHex: tx.rawTxHex,
-      expectedTxid: tx.txid,
-      network: "signet",
+      review: revisaoDe(tx),
       fetchImpl: mockFetch([{ text: tx.txid }]),
     });
     expect(result.txid).toBe(tx.txid);
@@ -280,9 +316,7 @@ describe("broadcastRawTransaction", () => {
     const fetchImpl = mockFetch([{ text: tx.txid }]);
     await broadcastRawTransaction({
       config: CONFIG,
-      rawTxHex: tx.rawTxHex,
-      expectedTxid: tx.txid,
-      network: "signet",
+      review: revisaoDe(tx),
       fetchImpl,
     });
     expect((fetchImpl as ReturnType<typeof vi.fn>).mock.calls).toHaveLength(1);
@@ -299,9 +333,7 @@ describe("broadcastRawTransaction — recusas do nó", () => {
     const tx = signedTx();
     const promessa = broadcastRawTransaction({
       config: CONFIG,
-      rawTxHex: tx.rawTxHex,
-      expectedTxid: tx.txid,
-      network: "signet",
+      review: revisaoDe(tx),
       fetchImpl: mockFetch([{ ok: false, status: 400, text: mensagem }]),
     });
 
@@ -314,9 +346,7 @@ describe("broadcastRawTransaction — recusas do nó", () => {
     try {
       await broadcastRawTransaction({
         config: CONFIG,
-        rawTxHex: tx.rawTxHex,
-        expectedTxid: tx.txid,
-        network: "signet",
+        review: revisaoDe(tx),
         fetchImpl: mockFetch([{ ok: false, status: 400, text: "txn-already-in-mempool" }]),
       });
       throw new Error("deveria ter lançado");
@@ -336,9 +366,7 @@ describe("broadcastRawTransaction — respostas suspeitas", () => {
     await expect(
       broadcastRawTransaction({
         config: CONFIG,
-        rawTxHex: tx.rawTxHex,
-        expectedTxid: tx.txid,
-        network: "signet",
+        review: revisaoDe(tx),
         fetchImpl: mockFetch([{ text: outro }]),
       }),
     ).rejects.toThrow(/não é a que foi revisada/);
@@ -349,9 +377,7 @@ describe("broadcastRawTransaction — respostas suspeitas", () => {
     await expect(
       broadcastRawTransaction({
         config: CONFIG,
-        rawTxHex: tx.rawTxHex,
-        expectedTxid: tx.txid,
-        network: "signet",
+        review: revisaoDe(tx),
         fetchImpl: mockFetch([{ text: "<html>gateway timeout</html>" }]),
       }),
     ).rejects.toThrow(/Estado da transmissão é desconhecido/);
@@ -361,9 +387,7 @@ describe("broadcastRawTransaction — respostas suspeitas", () => {
     const tx = signedTx();
     const result = await broadcastRawTransaction({
       config: CONFIG,
-      rawTxHex: tx.rawTxHex,
-      expectedTxid: tx.txid,
-      network: "signet",
+      review: revisaoDe(tx),
       fetchImpl: mockFetch([{ text: tx.txid.toUpperCase() }]),
     });
     expect(result.txid).toBe(tx.txid.toLowerCase());
@@ -373,9 +397,7 @@ describe("broadcastRawTransaction — respostas suspeitas", () => {
     const tx = signedTx();
     const result = await broadcastRawTransaction({
       config: CONFIG,
-      rawTxHex: tx.rawTxHex,
-      expectedTxid: tx.txid,
-      network: "signet",
+      review: revisaoDe(tx),
       fetchImpl: mockFetch([{ text: `\n  ${tx.txid}  \n` }]),
     });
     expect(result.txid).toBe(tx.txid);
@@ -391,31 +413,27 @@ describe("broadcastRawTransaction — entrada inválida não chega na rede", () 
     await expect(
       broadcastRawTransaction({
         config: CONFIG,
-        rawTxHex: raw,
-        expectedTxid: "a".repeat(64),
-        network: "signet",
+        review: revisaoForjada({ rawTxHex: raw, txid: "a".repeat(64) }),
         fetchImpl,
       }),
     ).rejects.toThrow(/rawTxHex/);
     expect((fetchImpl as ReturnType<typeof vi.fn>).mock.calls).toHaveLength(0);
   });
 
-  it("recusa expectedTxid malformado antes de qualquer chamada", async () => {
+  it("recusa revisão com txid malformado antes de qualquer chamada", async () => {
     const tx = signedTx();
     const fetchImpl = mockFetch([{ text: "nunca" }]);
     await expect(
       broadcastRawTransaction({
         config: CONFIG,
-        rawTxHex: tx.rawTxHex,
-        expectedTxid: "curto",
-        network: "signet",
+        review: revisaoForjada({ rawTxHex: tx.rawTxHex, txid: "curto" }),
         fetchImpl,
       }),
     ).rejects.toThrow(/expectedTxid/);
     expect((fetchImpl as ReturnType<typeof vi.fn>).mock.calls).toHaveLength(0);
   });
 
-  it("recusa expectedTxid que não corresponde aos bytes, antes de qualquer chamada", async () => {
+  it("recusa revisão forjada cujo txid não corresponde aos bytes", async () => {
     const tx = signedTx();
     const outro = signedTx({ recipientSats: 61_000, changeSats: 38_000 });
     expect(outro.txid).not.toBe(tx.txid);
@@ -424,9 +442,8 @@ describe("broadcastRawTransaction — entrada inválida não chega na rede", () 
     await expect(
       broadcastRawTransaction({
         config: CONFIG,
-        rawTxHex: tx.rawTxHex,
-        expectedTxid: outro.txid, // txid de OUTRA transação, bem formado
-        network: "signet",
+        // Revisão forjada: bytes de uma transação, txid de outra.
+        review: revisaoForjada({ rawTxHex: tx.rawTxHex, txid: outro.txid }),
         fetchImpl,
       }),
     ).rejects.toThrow(/Nada foi enviado/);
@@ -438,9 +455,7 @@ describe("broadcastRawTransaction — entrada inválida não chega na rede", () 
     await expect(
       broadcastRawTransaction({
         config: CONFIG,
-        rawTxHex: "deadbeef", // passa na forma, não é transação
-        expectedTxid: "a".repeat(64),
-        network: "signet",
+        review: revisaoForjada({ rawTxHex: "deadbeef", txid: "a".repeat(64) }),
         fetchImpl,
       }),
     ).rejects.toThrow(/Nada foi enviado/);
@@ -453,9 +468,7 @@ describe("broadcastRawTransaction — entrada inválida não chega na rede", () 
 
     const result = await broadcastRawTransaction({
       config: CONFIG,
-      rawTxHex: tx.rawTxHex,
-      expectedTxid: tx.txid.toUpperCase(),
-      network: "signet",
+      review: revisaoForjada({ rawTxHex: tx.rawTxHex, txid: tx.txid.toUpperCase() }),
       fetchImpl,
     });
 
@@ -469,9 +482,7 @@ describe("broadcastRawTransaction — entrada inválida não chega na rede", () 
 
     await broadcastRawTransaction({
       config: CONFIG,
-      rawTxHex: tx.rawTxHex,
-      expectedTxid: tx.txid,
-      network: "signet",
+      review: revisaoDe(tx),
       fetchImpl,
     });
 
@@ -485,9 +496,7 @@ describe("broadcastRawTransaction — entrada inválida não chega na rede", () 
     await expect(
       broadcastRawTransaction({
         config: CONFIG,
-        rawTxHex: tx.rawTxHex,
-        expectedTxid: tx.txid,
-        network: "mainnet" as unknown as "signet",
+        review: revisaoForjada({ rawTxHex: tx.rawTxHex, txid: tx.txid, network: "mainnet" }),
         fetchImpl,
       }),
     ).rejects.toThrow();
@@ -509,24 +518,20 @@ describe("precheck de txid — ancorado numa transação real aceita pela Signet
     const fetchImpl = mockFetch([{ text: TXID_REAL }]);
     const result = await broadcastRawTransaction({
       config: CONFIG,
-      rawTxHex: RAW_REAL,
-      expectedTxid: TXID_REAL,
-      network: "signet",
+      review: revisaoForjada({ rawTxHex: RAW_REAL, txid: TXID_REAL }),
       fetchImpl,
     });
     expect(result.txid).toBe(TXID_REAL);
     expect((fetchImpl as ReturnType<typeof vi.fn>).mock.calls).toHaveLength(1);
   });
 
-  it("recusa antes da rede se o txid esperado vier invertido em ordem de bytes", async () => {
+  it("recusa antes da rede se o txid vier invertido em ordem de bytes", async () => {
     const invertido = (TXID_REAL.match(/../g) ?? []).reverse().join("");
     const fetchImpl = mockFetch([{ text: "nunca" }]);
     await expect(
       broadcastRawTransaction({
         config: CONFIG,
-        rawTxHex: RAW_REAL,
-        expectedTxid: invertido,
-        network: "signet",
+        review: revisaoForjada({ rawTxHex: RAW_REAL, txid: invertido }),
         fetchImpl,
       }),
     ).rejects.toThrow(/Nada foi enviado/);
