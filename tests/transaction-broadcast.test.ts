@@ -11,6 +11,7 @@ import {
   MIN_RELAY_FEE_RATE_SATS_PER_VBYTE,
   REVIEW_HIGH_FEE_SATS,
   broadcastRawTransaction,
+  finalizeSignedPsbt,
   reviewSignedTransaction,
   sumPsbtInputAmounts,
 } from "../shared/transaction-broadcast";
@@ -501,6 +502,26 @@ describe("broadcastRawTransaction — entrada inválida não chega na rede", () 
       }),
     ).rejects.toThrow();
     expect((fetchImpl as ReturnType<typeof vi.fn>).mock.calls).toHaveLength(0);
+  });
+});
+
+describe("finalizeSignedPsbt — mensagem quando a PSBT não está assinada", () => {
+  it("explica em português, em vez de repassar o texto cru da biblioteca", () => {
+    // A biblioteca lança "Not enough partial sign" — inglês, e no ponto exato
+    // em que a pessoa está tentando entender o passo da assinatura.
+    const built = buildUnsignedPsbt({
+      inputs: [{ utxo: utxo(100_000), ownerAddress: ADDR_0 }],
+      recipientAddress: ADDR_1,
+      recipientSats: 60_000,
+      changeAddress: ADDR_CHANGE,
+      changeSats: 39_000,
+      network: "signet",
+      maxFeeSats: 10_000_000,
+    });
+
+    expect(() =>
+      finalizeSignedPsbt({ signedPsbtBase64: built.psbtBase64, network: "signet" }),
+    ).toThrow(/não estar assinada/);
   });
 });
 

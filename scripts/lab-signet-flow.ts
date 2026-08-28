@@ -37,7 +37,7 @@
 
 import { randomBytes } from "node:crypto";
 
-import { hex } from "@scure/base";
+import { base64, hex } from "@scure/base";
 import { HDKey } from "@scure/bip32";
 import * as btc from "@scure/btc-signer";
 
@@ -49,7 +49,7 @@ import {
   type EsploraUtxo,
 } from "../shared/esplora-client";
 import { buildPsbtFromSelection } from "../shared/psbt-builder";
-import { signAndFinalizeWithTestSeed } from "../shared/psbt-signer";
+import { signAndFinalizeWithTestSeed, signPsbtWithTestSeed } from "../shared/psbt-signer";
 import {
   broadcastRawTransaction,
   reviewSignedTransaction,
@@ -309,6 +309,116 @@ async function commandSend(args: string[]): Promise<void> {
 
 // ---------------------------------------------------------------------------
 
+/**
+ * Descobre qual caminho de derivação controla um script de saída.
+ *
+ * Existe porque uma PSBT vinda de fora não diz qual chave assina cada entrada
+ * — o campo `bip32Derivation` não é preenchido hoje (PSBT-DERIV-001). Em vez
+ * de supor que toda entrada é do endereço de recebimento, o script decodifica
+ * o endereço da entrada e procura, entre os caminhos conhecidos, o que produz
+ * exatamente aquele endereço.
+ *
+ * Supor erraria calado: assinar com a chave errada não falha aqui, falha no
+ * `finalize`, longe da causa.
+ */
+function pathForInputScript(seedHex: string, script: Uint8Array): string | null {
+  let enderecoDaEntrada: string;
+  try {
+    enderecoDaEntrada = btc.Address(btc.TEST_NETWORK).encode(btc.OutScript.decode(script));
+  } catch {
+    return null;
+  }
+
+  for (const path of [RECEIVE_PATH, CHANGE_PATH]) {
+    if (addressFor(seedHex, path) === enderecoDaEntrada) return path;
+  }
+
+  return null;
+}
+
+/**
+ * Assina uma PSBT vinda de fora e devolve a PSBT assinada.
+ *
+ * NÃO finaliza e NÃO transmite. É o assinador externo do fluxo PSBT: a
+ * interface monta, este comando assina, a interface revisa pelos bytes e
+ * transmite. Enquanto o cofre nativo não existir, é este script que ocupa o
+ * lugar dele — e é por isso que ele vive na faixa de laboratório, com seed
+ * descartável e valor zero.
+ */
+function commandSign(args: string[]): void {
+  const psbtBase64 = args[0];
+
+  if (!psbtBase64) {
+    fail("Uso: sign <psbt-base64>");
+  }
+
+  const seedHex = readSeedFromEnv();
+
+  let tx: btc.Transaction;
+  try {
+    tx = btc.Transaction.fromPSBT(base64.decode(psbtBase64));
+  } catch (cause) {
+    fail(
+      `Não foi possível ler a PSBT: ${cause instanceof Error ? cause.message : String(cause)}\n` +
+        "  Confira se colou o texto inteiro, sem quebra de linha perdida.",
+    );
+  }
+
+  if (tx.inputsLength === 0) {
+    fail("PSBT sem entradas: não há o que assinar.");
+  }
+
+  const caminhos: string[] = [];
+
+  for (let i = 0; i < tx.inputsLength; i += 1) {
+    const script = tx.getInput(i).witnessUtxo?.script;
+
+    if (!script) {
+      fail(
+        `Entrada ${i} não declara witnessUtxo. Sem ela não dá para saber que endereço ` +
+          "está sendo gasto, e assinar às cegas é justamente o que não se faz.",
+      );
+    }
+
+    const path = pathForInputScript(seedHex, script);
+
+    if (!path) {
+      const endereco = (() => {
+        try {
+          return btc.Address(btc.TEST_NETWORK).encode(btc.OutScript.decode(script));
+        } catch {
+          return "(script ilegível)";
+        }
+      })();
+
+      fail(
+        `Entrada ${i} gasta ${endereco}, que NÃO pertence à seed carregada.\n` +
+          `  Caminhos conferidos: ${RECEIVE_PATH} e ${CHANGE_PATH}.\n` +
+          "  Ou a PSBT foi montada a partir de outro endereço, ou DIVINO_LAB_SEED é outra seed.\n" +
+          "  Nada foi assinado.",
+      );
+    }
+
+    caminhos.push(path);
+  }
+
+  const assinada = signPsbtWithTestSeed({
+    psbtBase64,
+    seedHex,
+    inputPaths: caminhos,
+    network: NETWORK,
+  });
+
+  console.log(`\nEntradas assinadas: ${assinada.signedInputCount} de ${tx.inputsLength}`);
+  for (const [i, path] of caminhos.entries()) {
+    console.log(`  entrada ${i}  ←  ${path}`);
+  }
+  console.log("\nNÃO foi finalizada e NÃO foi transmitida.\n");
+  console.log("PSBT ASSINADA — cole isto de volta na tela do aparelho:\n");
+  console.log(assinada.signedPsbtBase64);
+  console.log("");
+}
+
 async function main(): Promise<void> {
   const [comando, ...args] = process.argv.slice(2);
 
@@ -319,6 +429,8 @@ async function main(): Promise<void> {
       return commandAddress();
     case "balance":
       return commandBalance();
+    case "sign":
+      return commandSign(args);
     case "send":
       return commandSend(args);
     default:
@@ -328,6 +440,7 @@ Ferramenta de laboratório — caminho on-chain na Signet
   new-seed                              gera seed descartável e endereço
   address                               mostra endereços de recebimento e troco
   balance                               consulta UTXOs do endereço de recebimento
+  sign <psbt-base64>                    assina uma PSBT vinda de fora e imprime a assinada
   send <destino> <sats> [sat/vB]        monta, assina e REVISA (não transmite)
   send <destino> <sats> [sat/vB] --confirmo   transmite de verdade
 

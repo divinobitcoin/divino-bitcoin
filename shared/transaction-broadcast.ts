@@ -320,7 +320,19 @@ export function finalizeSignedPsbt(params: {
     return `${output.amount}:${hex.encode(output.script ?? new Uint8Array())}`;
   });
 
-  tx.finalize();
+  try {
+    tx.finalize();
+  } catch (cause) {
+    // A biblioteca diz "Not enough partial sign" — texto cru, em inglês, no
+    // ponto exato em que a pessoa está tentando entender o passo da assinatura.
+    // A causa quase sempre é uma só: a PSBT chegou aqui sem assinatura nenhuma.
+    throw new Error(
+      "A PSBT não pôde ser finalizada. A causa mais comum é ela não estar assinada — " +
+        "esta tela não assina, a assinatura vem de fora. Confira se colou a PSBT devolvida " +
+        `pelo assinador, e não a que foi exportada. (biblioteca: ${cause instanceof Error ? cause.message : String(cause)})`,
+      { cause },
+    );
+  }
 
   if (!tx.isFinal) {
     throw new Error("A PSBT não ficou final após finalize(). Provável assinatura faltando.");
