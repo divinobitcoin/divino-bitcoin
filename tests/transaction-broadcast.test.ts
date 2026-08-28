@@ -415,6 +415,70 @@ describe("broadcastRawTransaction — entrada inválida não chega na rede", () 
     expect((fetchImpl as ReturnType<typeof vi.fn>).mock.calls).toHaveLength(0);
   });
 
+  it("recusa expectedTxid que não corresponde aos bytes, antes de qualquer chamada", async () => {
+    const tx = signedTx();
+    const outro = signedTx({ recipientSats: 61_000, changeSats: 38_000 });
+    expect(outro.txid).not.toBe(tx.txid);
+
+    const fetchImpl = mockFetch([{ text: "nunca" }]);
+    await expect(
+      broadcastRawTransaction({
+        config: CONFIG,
+        rawTxHex: tx.rawTxHex,
+        expectedTxid: outro.txid, // txid de OUTRA transação, bem formado
+        network: "signet",
+        fetchImpl,
+      }),
+    ).rejects.toThrow(/Nada foi enviado/);
+    expect((fetchImpl as ReturnType<typeof vi.fn>).mock.calls).toHaveLength(0);
+  });
+
+  it("recusa rawTxHex hexadecimal porém ilegível, antes de qualquer chamada", async () => {
+    const fetchImpl = mockFetch([{ text: "nunca" }]);
+    await expect(
+      broadcastRawTransaction({
+        config: CONFIG,
+        rawTxHex: "deadbeef", // passa na forma, não é transação
+        expectedTxid: "a".repeat(64),
+        network: "signet",
+        fetchImpl,
+      }),
+    ).rejects.toThrow(/Nada foi enviado/);
+    expect((fetchImpl as ReturnType<typeof vi.fn>).mock.calls).toHaveLength(0);
+  });
+
+  it("compara o txid local sem distinguir maiúsculas de minúsculas", async () => {
+    const tx = signedTx();
+    const fetchImpl = mockFetch([{ text: tx.txid }]);
+
+    const result = await broadcastRawTransaction({
+      config: CONFIG,
+      rawTxHex: tx.rawTxHex,
+      expectedTxid: tx.txid.toUpperCase(),
+      network: "signet",
+      fetchImpl,
+    });
+
+    expect(result.txid).toBe(tx.txid.toLowerCase());
+    expect((fetchImpl as ReturnType<typeof vi.fn>).mock.calls).toHaveLength(1);
+  });
+
+  it("o txid local sai dos mesmos bytes que vão no corpo do POST", async () => {
+    const tx = signedTx();
+    const fetchImpl = mockFetch([{ text: tx.txid }]);
+
+    await broadcastRawTransaction({
+      config: CONFIG,
+      rawTxHex: tx.rawTxHex,
+      expectedTxid: tx.txid,
+      network: "signet",
+      fetchImpl,
+    });
+
+    const [, init] = (fetchImpl as ReturnType<typeof vi.fn>).mock.calls[0];
+    expect(btc.Transaction.fromRaw(hex.decode(init.body)).id).toBe(tx.txid);
+  });
+
   it("recusa rede diferente de signet antes de qualquer chamada", async () => {
     const tx = signedTx();
     const fetchImpl = mockFetch([{ text: "nunca" }]);
@@ -427,6 +491,45 @@ describe("broadcastRawTransaction — entrada inválida não chega na rede", () 
         fetchImpl,
       }),
     ).rejects.toThrow();
+    expect((fetchImpl as ReturnType<typeof vi.fn>).mock.calls).toHaveLength(0);
+  });
+});
+
+describe("precheck de txid — ancorado numa transação real aceita pela Signet", () => {
+  // Bytes e txid da transação de BROADCAST-REAL-001, aceita por nó da Signet em
+  // 27/08/2026. Os bytes vieram do nó (Esplora), não deste código. Serve de
+  // âncora independente: prova que o txid calculado localmente é o mesmo que a
+  // rede atribuiu, em ordem de exibição, para uma transação segwit real. Se
+  // alguém inverter a ordem de bytes por engano, este teste reprova.
+  // prettier-ignore
+  const RAW_REAL = "020000000001011518503dfe8e58bebb508ac3c95ce9bd399adc38b17e8c733ae059271d731d4b0100000000fdffffff028813000000000000160014306b0e91bfc57cebb994b28f831c5f25cadc20876f12000000000000160014b66d68a069e00cd3eeb88b3aa8cbc565af43032602483045022100e705ee3fc2e9b76ece347c3ce9e4ddd530dda610c61a893a1c78785154b29c6702203787d2e7a6551d7f5eada400fcf26b7e38b3de07efc762365ba4ff3dce35a1300121022be393012e9d3c3e7cbf0865f218f451504274fd187fe18a6cef8192385f1bdf00000000";
+  const TXID_REAL = "87174464d90500db2e87227dee5d123f5f5c4b14642dd8499d398819d0e7238c";
+
+  it("aceita o par real e transmite", async () => {
+    const fetchImpl = mockFetch([{ text: TXID_REAL }]);
+    const result = await broadcastRawTransaction({
+      config: CONFIG,
+      rawTxHex: RAW_REAL,
+      expectedTxid: TXID_REAL,
+      network: "signet",
+      fetchImpl,
+    });
+    expect(result.txid).toBe(TXID_REAL);
+    expect((fetchImpl as ReturnType<typeof vi.fn>).mock.calls).toHaveLength(1);
+  });
+
+  it("recusa antes da rede se o txid esperado vier invertido em ordem de bytes", async () => {
+    const invertido = (TXID_REAL.match(/../g) ?? []).reverse().join("");
+    const fetchImpl = mockFetch([{ text: "nunca" }]);
+    await expect(
+      broadcastRawTransaction({
+        config: CONFIG,
+        rawTxHex: RAW_REAL,
+        expectedTxid: invertido,
+        network: "signet",
+        fetchImpl,
+      }),
+    ).rejects.toThrow(/Nada foi enviado/);
     expect((fetchImpl as ReturnType<typeof vi.fn>).mock.calls).toHaveLength(0);
   });
 });

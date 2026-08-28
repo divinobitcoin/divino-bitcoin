@@ -349,9 +349,25 @@ type FetchLike = typeof fetch;
  * **Este é o passo que não volta.**
  *
  * `expectedTxid` é obrigatório de propósito. Ele obriga quem chama a saber o
- * que está transmitindo, e permite conferir que o servidor concordou com o
- * mesmo txid. Divergência aí significa que a transação transmitida não é a que
- * foi revisada — e a função lança em vez de reportar sucesso.
+ * que está transmitindo, e é conferido **duas vezes, contra fontes diferentes**:
+ *
+ * 1. **Antes da rede**, contra os próprios bytes de `rawTxHex`. O txid é
+ *    recalculado localmente a partir do que seria enviado. Divergindo, a função
+ *    lança e **nenhuma chamada de rede acontece**. Esta é a única das duas que
+ *    ainda pode impedir o dano: depois do POST a transação já está na rede.
+ * 2. **Depois da resposta**, contra o txid devolvido pelo servidor. Detecta um
+ *    servidor que aceitou outra coisa, e serve para avisar — o estrago, se
+ *    houver, já foi feito.
+ *
+ * As duas defendem contra coisas diferentes e nenhuma substitui a outra. A
+ * primeira pega inconsistência do lado de cá: bytes e txid vindos de estados
+ * diferentes de quem chama, revisão feita sobre uma transação e transmissão de
+ * outra. A segunda pega divergência do lado de lá.
+ *
+ * **O que a primeira NÃO faz:** ela compara dois argumentos entre si, não
+ * compara a transação com a intenção do usuário. Se `expectedTxid` for derivado
+ * do mesmo `rawTxHex` no mesmo instante, a checagem é tautológica. Ligar
+ * `expectedTxid` à PSBT efetivamente revisada é problema separado, ainda aberto.
  *
  * Não faz retentativa automática. Retransmitir a mesma transação é inofensivo
  * (mesmo txid), mas repetir cegamente uma chamada cujo resultado é ambíguo é
@@ -376,6 +392,30 @@ export async function broadcastRawTransaction(params: {
   if (!/^[0-9a-f]{64}$/i.test(expectedTxid)) {
     throw new Error(
       `expectedTxid precisa ter 64 caracteres hexadecimais; recebido: ${JSON.stringify(expectedTxid)}.`,
+    );
+  }
+
+  // Precheck local. Nenhuma chamada de rede acontece antes daqui.
+  //
+  // O txid é recalculado a partir de `rawTxHex` — exatamente a string que vai no
+  // corpo do POST abaixo — e não de nenhum estado externo. `hex.decode` aceita
+  // maiúsculas e produz os mesmos bytes; verificado, não suposto.
+  let localTxid: string;
+  try {
+    localTxid = btc.Transaction.fromRaw(hex.decode(rawTxHex)).id;
+  } catch (cause) {
+    throw new Error(
+      "rawTxHex passou na verificação de forma mas não é uma transação legível; " +
+        "não dá para conferir o txid antes de transmitir. Nada foi enviado.",
+      { cause },
+    );
+  }
+
+  if (localTxid.toLowerCase() !== expectedTxid.toLowerCase()) {
+    throw new Error(
+      `O txid calculado a partir de rawTxHex é ${localTxid}, diferente do expectedTxid ` +
+        `${expectedTxid}. Os bytes que seriam transmitidos não são os da transação revisada. ` +
+        `Nada foi enviado.`,
     );
   }
 
