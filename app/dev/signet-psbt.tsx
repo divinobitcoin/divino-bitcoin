@@ -279,7 +279,15 @@ export default function SignetPsbtScreen() {
   }
 
   return (
-    <ScreenContainer containerStyle={styles.tela} style={styles.tela}>
+    <ScreenContainer
+      // Estas telas são do Stack, não das abas: não existe barra de abas
+      // embaixo para absorver a área do sistema, e o padrão do componente
+      // exclui a borda inferior. Sem isto o último botão fica debaixo da
+      // barra de navegação do Android. Observado no aparelho.
+      edges={["top", "left", "right", "bottom"]}
+      containerStyle={styles.tela}
+      style={styles.tela}
+    >
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <Text style={styles.eyebrow}>FERRAMENTA DE TESTE — NÃO É A CARTEIRA FINAL</Text>
