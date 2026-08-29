@@ -27,20 +27,29 @@
  *
  * ## Estado desta implementação — seja honesto sobre isto antes de usar
  *
- * Escrito e testado só contra respostas HTTP simuladas (mocks), construídas
- * a partir da documentação da API RPC do Bitcoin Core v31. **Nunca foi
- * verificado contra um nó real** — nem sequer contra o
- * `~/.bitcoin-divino-signet` que já existe. `pnpm test` passando aqui
- * significa "o código trata as formas de resposta que eu esperava
- * receber", não "o nó responde assim". Rodar `wallet:smoke` (script novo,
- * ver rodapé) contra o nó real é o próximo passo, não um detalhe.
+ * Escrito primeiro só contra respostas HTTP simuladas (mocks). Em
+ * 29/08/2026, `scripts/wallet-core-smoke.ts` rodou contra o nó real
+ * (`~/.bitcoin-divino-signet`, Signet, pruned) e isto é o que ficou
+ * verificado de fato, não suposto:
  *
- * Duas coisas específicas que dependem de verificação em nó real e que a
- * documentação não deixa 100% claras: a forma exata do erro de
- * `createwallet` quando a wallet já existe (o fallback para `loadwallet`
- * foi escrito para não depender de casar o texto exato dessa mensagem), e
- * se `importdescriptors` aceita os dois descriptors (recebimento e troco)
- * numa única chamada em lote na versão instalada.
+ *   - `createwallet` com `disable_private_keys=true` funciona, e
+ *     `getwalletinfo` confirma `private_keys_enabled: false` de volta.
+ *   - `getdescriptorinfo` + `importdescriptors` com um `addr(...)` único
+ *     (sem faixa) funciona — `importWatchOnlyAddress`.
+ *   - `listunspent` devolve os campos que este módulo espera
+ *     (txid/vout/address/amount/confirmations).
+ *   - **`getbalances` reporta o saldo de uma wallet
+ *     `disable_private_keys=true` sob o grupo `mine`, não `watchonly`.**
+ *     A primeira versão deste código lia `watchonly` — suposição errada,
+ *     nunca teria funcionado contra o nó real, só passava porque o mock
+ *     do teste também estava errado do mesmo jeito. Corrigido depois de
+ *     ver a resposta real, não antes.
+ *
+ * Ainda não verificado: o fallback `loadwallet` quando `createwallet` acha
+ * a wallet já existente (só foi exercitado criando pela primeira vez); e
+ * `importWatchOnlyDescriptors` — o caminho de conta inteira (xpub com
+ * faixa de recebimento + troco) — que continua sem nunca ter tocado um nó
+ * real, só o caminho de endereço único foi testado até agora.
  *
  * ## Este módulo NÃO está ligado ao gate `liveSyncEnabled`
  *
@@ -409,33 +418,43 @@ export async function listWatchOnlyUtxos(
 }
 
 /**
- * Saldo agregado da wallet watch-only via `getbalances`. Usa
- * especificamente o grupo `watchonly` da resposta — o grupo `mine` não
- * existe numa wallet sem chave privada, e não deve ser lido por engano.
+ * Saldo agregado da wallet watch-only via `getbalances`. Lê o grupo
+ * `mine` — CONFIRMADO contra nó real em 29/08/2026 (Signet,
+ * `~/.bitcoin-divino-signet`): uma wallet criada com
+ * `disable_private_keys=true` reporta o saldo dela sob `mine`, porque é a
+ * única categoria que existe pra ela. `watchonly` é o grupo de um caso
+ * diferente — uma wallet COM chave própria que também importou scripts de
+ * fora — e nunca aparece aqui, porque `ensureWatchOnlyWallet` já garantiu
+ * que esta wallet nunca tem chave própria.
+ *
+ * Isto substitui uma suposição errada da primeira versão deste módulo,
+ * que lia `watchonly` e teria lançado sempre. O nome dos campos do tipo
+ * de retorno (`trustedSats` etc.) continua descrevendo o significado, não
+ * o nome literal do grupo do Core.
  */
 export async function getWatchOnlyBalanceSummary(
   config: BitcoinCoreWalletConfig,
   fetchImpl: FetchLike = fetch,
 ): Promise<WatchOnlyBalanceSummary> {
   const result = await rpcCall<{
-    watchonly?: { trusted?: number; untrusted_pending?: number; immature?: number };
+    mine?: { trusted?: number; untrusted_pending?: number; immature?: number };
   }>(walletUrl(config), config, "getbalances", [], fetchImpl);
 
-  const watchonly = result.watchonly;
+  const mine = result.mine;
 
-  if (!watchonly) {
+  if (!mine) {
     throw new Error(
-      "getbalances não devolveu o grupo watchonly. Isso normalmente significa que a wallet " +
-        "não foi criada com disable_private_keys=true, ou não é a wallet esperada.",
+      "getbalances não devolveu o grupo mine. Isso é inesperado até para uma wallet vazia — " +
+        "conferir se esta é mesmo a wallet watch-only certa.",
     );
   }
 
   const toSats = (btc: number | undefined): number => Math.round((btc ?? 0) * 100_000_000);
 
   return {
-    trustedSats: toSats(watchonly.trusted),
-    untrustedPendingSats: toSats(watchonly.untrusted_pending),
-    immatureSats: toSats(watchonly.immature),
+    trustedSats: toSats(mine.trusted),
+    untrustedPendingSats: toSats(mine.untrusted_pending),
+    immatureSats: toSats(mine.immature),
   };
 }
 

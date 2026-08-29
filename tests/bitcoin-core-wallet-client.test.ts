@@ -228,11 +228,15 @@ describe("listWatchOnlyUtxos", () => {
 });
 
 describe("getWatchOnlyBalanceSummary", () => {
-  it("lê o grupo watchonly, não o grupo mine", async () => {
+  // Formato confirmado contra o nó real em 29/08/2026: uma wallet
+  // disable_private_keys=true reporta o saldo dela sob "mine" — é a única
+  // categoria que existe pra ela. Não há grupo "watchonly" na resposta
+  // real; a versão anterior deste teste supunha o contrário e nunca teria
+  // pegado o bug, porque o mock repetia a mesma suposição errada do código.
+  it("lê o grupo mine (não existe watchonly numa wallet sem chave própria)", async () => {
     const fetchImpl = jsonRpcRouter({
       getbalances: () => ({
-        mine: { trusted: 999 }, // se isto for lido por engano, o teste abaixo falha
-        watchonly: { trusted: 0.0001, untrusted_pending: 0.00005, immature: 0 },
+        mine: { trusted: 0.0001, untrusted_pending: 0.00005, immature: 0 },
       }),
     });
 
@@ -241,10 +245,23 @@ describe("getWatchOnlyBalanceSummary", () => {
     expect(summary).toEqual({ trustedSats: 10000, untrustedPendingSats: 5000, immatureSats: 0 });
   });
 
-  it("lança se a resposta não tiver grupo watchonly", async () => {
-    const fetchImpl = jsonRpcRouter({ getbalances: () => ({ mine: { trusted: 0 } }) });
+  it("reproduz a resposta real observada em 29/08/2026 (369 sat confirmados, sem pendente)", async () => {
+    const fetchImpl = jsonRpcRouter({
+      getbalances: () => ({
+        mine: { trusted: 0.00000369, untrusted_pending: 0.0, immature: 0.0 },
+        lastprocessedblock: { hash: "00000009e4eee627ccf454d7d17e6a54fd0652749bdf5e2940802c9bca86658b", height: 319874 },
+      }),
+    });
 
-    await expect(getWatchOnlyBalanceSummary(CONFIG, fetchImpl)).rejects.toThrow(/watchonly/);
+    const summary = await getWatchOnlyBalanceSummary(CONFIG, fetchImpl);
+
+    expect(summary).toEqual({ trustedSats: 369, untrustedPendingSats: 0, immatureSats: 0 });
+  });
+
+  it("lança se a resposta não tiver grupo mine", async () => {
+    const fetchImpl = jsonRpcRouter({ getbalances: () => ({}) });
+
+    await expect(getWatchOnlyBalanceSummary(CONFIG, fetchImpl)).rejects.toThrow(/mine/);
   });
 });
 
