@@ -23,6 +23,14 @@ const RAW_REAL =
   "020000000001011518503dfe8e58bebb508ac3c95ce9bd399adc38b17e8c733ae059271d731d4b0100000000fdffffff028813000000000000160014306b0e91bfc57cebb994b28f831c5f25cadc20876f12000000000000160014b66d68a069e00cd3eeb88b3aa8cbc565af43032602483045022100e705ee3fc2e9b76ece347c3ce9e4ddd530dda610c61a893a1c78785154b29c6702203787d2e7a6551d7f5eada400fcf26b7e38b3de07efc762365ba4ff3dce35a1300121022be393012e9d3c3e7cbf0865f218f451504274fd187fe18a6cef8192385f1bdf00000000";
 const TXID_REAL = "87174464d90500db2e87227dee5d123f5f5c4b14642dd8499d398819d0e7238c";
 
+// O Core devolve HTTP 500 (não 200) para erro de nível RPC, com a
+// mensagem real no corpo JSON — confirmado contra o nó real em
+// 29/08/2026 (foi um bug de verdade: a primeira versão deste mock
+// devolvia ok:true/status:200 para ErrorResult, o que fez os testes
+// passarem enquanto o código de produção lia !response.ok antes do corpo
+// e descartava a mensagem. Terceira vez neste arquivo que o mock repete
+// a mesma suposição errada do código — ver getbalances/mine no commit
+// anterior para a segunda).
 function jsonRpcRouter(handlers: Record<string, (params: unknown[]) => unknown>) {
   return vi.fn(async (_url: string, options: { body: string }) => {
     const body = JSON.parse(options.body) as { method: string; params: unknown[] };
@@ -32,7 +40,7 @@ function jsonRpcRouter(handlers: Record<string, (params: unknown[]) => unknown>)
     }
     const outcome = handler(body.params);
     if (outcome instanceof ErrorResult) {
-      return { ok: true, status: 200, json: async () => ({ error: outcome.error }) };
+      return { ok: false, status: 500, json: async () => ({ error: outcome.error }) };
     }
     return { ok: true, status: 200, json: async () => ({ result: outcome }) };
   }) as unknown as typeof fetch;
@@ -74,6 +82,18 @@ describe("ensureWatchOnlyWallet", () => {
 
     await expect(ensureWatchOnlyWallet(CONFIG, fetchImpl)).rejects.toThrow(/motivo A/);
     await expect(ensureWatchOnlyWallet(CONFIG, fetchImpl)).rejects.toThrow(/motivo B/);
+  });
+
+  it("usa o status HTTP como motivo só quando não há corpo JSON-RPC legível (ex: 401 de autenticação)", async () => {
+    const fetchImpl = vi.fn(async () => ({
+      ok: false,
+      status: 401,
+      json: async () => {
+        throw new Error("corpo não é JSON");
+      },
+    })) as unknown as typeof fetch;
+
+    await expect(ensureWatchOnlyWallet(CONFIG, fetchImpl)).rejects.toThrow(/status HTTP 401/);
   });
 
   it("recusa prosseguir se o nó devolver private_keys_enabled != false", async () => {

@@ -139,24 +139,35 @@ async function rpcCall<T>(
     body: JSON.stringify({ jsonrpc: "1.0", id: `divino-wallet-${method}`, method, params }),
   });
 
-  if (!response.ok) {
-    // Autenticação errada chega como 401 antes de virar JSON-RPC.
-    throw new Error(`Chamada RPC (${method}) falhou com status HTTP ${response.status}.`);
+  // O Core devolve HTTP 500 (não 200) para a maioria dos erros de nível
+  // RPC — "wallet já existe", "endereço inválido", etc. — com a mensagem
+  // real dentro do corpo JSON. Checar `!response.ok` antes de ler esse
+  // corpo (como a primeira versão deste código fazia) descarta exatamente
+  // a mensagem que o usuário precisa ver, e troca por um "status HTTP 500"
+  // sem conteúdo. Por isso o corpo é lido SEMPRE, e só quando ele não tem
+  // um erro JSON-RPC legível é que o status HTTP vira o motivo do erro —
+  // cobrindo casos de transporte de verdade (autenticação, proxy, rede).
+  let body: { error?: { code?: number; message?: string } | null; result?: T } | null = null;
+  try {
+    body = await response.json();
+  } catch {
+    body = null;
   }
 
-  const body = (await response.json()) as {
-    error?: { code?: number; message?: string } | null;
-    result?: T;
-  };
-
-  if (body.error) {
+  if (body?.error) {
     throw new BitcoinCoreRpcError(
       body.error.code ?? null,
       `Nó recusou ${method}: ${body.error.message ?? "erro sem mensagem"} (código ${body.error.code ?? "?"}).`,
     );
   }
 
-  return body.result as T;
+  if (!response.ok) {
+    throw new Error(
+      `Chamada RPC (${method}) falhou com status HTTP ${response.status}, sem corpo de erro JSON-RPC legível.`,
+    );
+  }
+
+  return body?.result as T;
 }
 
 function walletUrl(config: BitcoinCoreWalletConfig): string {
