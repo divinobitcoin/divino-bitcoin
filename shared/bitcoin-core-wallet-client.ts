@@ -19,6 +19,12 @@
  * (`hasprivatekeys === false`) antes de importar, pela mesma razão: não
  * confiar que quem chamou passou o argumento certo.
  *
+ * Dois caminhos de import: `importWatchOnlyDescriptors` (um xpub, faixa de
+ * endereços) para uma conta inteira, e `importWatchOnlyAddress` (um único
+ * endereço, sem faixa) para o caso mais simples — é o que
+ * `scripts/wallet-core-smoke.ts` usa no primeiro teste contra o nó real,
+ * porque não depende de nenhuma derivação de xpub nova.
+ *
  * ## Estado desta implementação — seja honesto sobre isto antes de usar
  *
  * Escrito e testado só contra respostas HTTP simuladas (mocks), construídas
@@ -290,6 +296,65 @@ export async function importWatchOnlyDescriptors(
       .map((f) => `${f.branch}: ${f.result.error?.message ?? "falhou sem mensagem"}`)
       .join(" | ");
     throw new Error(`Import de descriptors falhou (${details}). Nenhum estado parcial deve ser considerado usável.`);
+  }
+}
+
+/**
+ * Importa um ÚNICO endereço público (`addr(...)`), sem faixa nenhuma —
+ * ao contrário de `importWatchOnlyDescriptors`, que importa um ramo
+ * inteiro (recebimento ou troco) de um xpub. Existe para o caso mais
+ * simples: observar um endereço específico, sem envolver derivação de
+ * conta nenhuma. É o caminho usado por `scripts/wallet-core-smoke.ts`.
+ *
+ * Mesma verificação de `hasprivatekeys === false` antes de importar —
+ * mesmo sendo um endereço, não um descriptor com xpub, o nó confirma que
+ * não há chave nenhuma envolvida.
+ */
+export async function importWatchOnlyAddress(
+  config: BitcoinCoreWalletConfig,
+  params: { address: string; birthday: number | "now" },
+  fetchImpl: FetchLike = fetch,
+): Promise<void> {
+  const desc = `addr(${params.address})`;
+
+  const info = await rpcCall<{ checksum?: string; hasprivatekeys?: boolean }>(
+    walletUrl(config),
+    config,
+    "getdescriptorinfo",
+    [desc],
+    fetchImpl,
+  );
+
+  if (info.hasprivatekeys !== false) {
+    throw new Error(
+      `O descriptor derivado do endereço "${params.address}" tem chave privada ` +
+        `(hasprivatekeys=${info.hasprivatekeys}). Recusando importar.`,
+    );
+  }
+  if (!info.checksum) {
+    throw new Error(`getdescriptorinfo não devolveu checksum para addr(${params.address}).`);
+  }
+
+  const results = await rpcCall<Array<{ success?: boolean; error?: { message?: string } }>>(
+    walletUrl(config),
+    config,
+    "importdescriptors",
+    [
+      [
+        {
+          desc: `${desc}#${info.checksum}`,
+          active: false,
+          timestamp: params.birthday,
+        },
+      ],
+    ],
+    fetchImpl,
+  );
+
+  if (results[0]?.success !== true) {
+    throw new Error(
+      `Import do endereço "${params.address}" falhou: ${results[0]?.error?.message ?? "sem mensagem"}.`,
+    );
   }
 }
 

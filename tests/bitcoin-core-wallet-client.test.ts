@@ -4,6 +4,7 @@ import {
   broadcastRawTransactionViaCoreRpc,
   ensureWatchOnlyWallet,
   getWatchOnlyBalanceSummary,
+  importWatchOnlyAddress,
   importWatchOnlyDescriptors,
   listWatchOnlyUtxos,
   type BitcoinCoreWalletConfig,
@@ -129,6 +130,51 @@ describe("importWatchOnlyDescriptors", () => {
     });
 
     await expect(importWatchOnlyDescriptors(CONFIG, DESCRIPTORS, fetchImpl)).rejects.toThrow(/faixa inválida/);
+  });
+});
+
+describe("importWatchOnlyAddress", () => {
+  const ADDRESS = "tb1qsmoketest0000000000000000000000000000";
+
+  it("importa addr(endereco) com checksum, sem faixa", async () => {
+    let sentRequest: unknown;
+    const fetchImpl = jsonRpcRouter({
+      getdescriptorinfo: (params) => {
+        expect(params[0]).toBe(`addr(${ADDRESS})`);
+        return { checksum: "deadbeef", hasprivatekeys: false };
+      },
+      importdescriptors: (params) => {
+        sentRequest = params[0];
+        return [{ success: true }];
+      },
+    });
+
+    await importWatchOnlyAddress(CONFIG, { address: ADDRESS, birthday: "now" }, fetchImpl);
+
+    expect(sentRequest).toEqual([
+      { desc: `addr(${ADDRESS})#deadbeef`, active: false, timestamp: "now" },
+    ]);
+  });
+
+  it("recusa se o descriptor derivado do endereço tiver chave privada", async () => {
+    const fetchImpl = jsonRpcRouter({
+      getdescriptorinfo: () => ({ checksum: "deadbeef", hasprivatekeys: true }),
+    });
+
+    await expect(
+      importWatchOnlyAddress(CONFIG, { address: ADDRESS, birthday: "now" }, fetchImpl),
+    ).rejects.toThrow(/chave privada/);
+  });
+
+  it("lança com a mensagem do nó quando o import falha", async () => {
+    const fetchImpl = jsonRpcRouter({
+      getdescriptorinfo: () => ({ checksum: "deadbeef", hasprivatekeys: false }),
+      importdescriptors: () => [{ success: false, error: { message: "endereço inválido para a rede" } }],
+    });
+
+    await expect(
+      importWatchOnlyAddress(CONFIG, { address: ADDRESS, birthday: "now" }, fetchImpl),
+    ).rejects.toThrow(/endereço inválido para a rede/);
   });
 });
 
