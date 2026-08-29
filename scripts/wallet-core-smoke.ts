@@ -39,10 +39,6 @@
  *   DIVINO_LAB_ESPLORA        https://mempool.space/signet/api
  */
 
-import { readFileSync } from "node:fs";
-import { homedir } from "node:os";
-import { resolve } from "node:path";
-
 import { hex } from "@scure/base";
 import { HDKey } from "@scure/bip32";
 import * as btc from "@scure/btc-signer";
@@ -55,16 +51,13 @@ import {
   type BitcoinCoreWalletConfig,
 } from "../shared/bitcoin-core-wallet-client";
 import { fetchAddressUtxos, sumUtxoValueSats, type EsploraConfig } from "../shared/esplora-client";
+import { resolveBitcoinCoreRpcCredentials } from "./bitcoin-core-rpc-env";
 
 const RECEIVE_PATH = "m/84'/1'/0'/0/0";
 
 function fail(message: string): never {
   console.error(`\nERRO: ${message}\n`);
   process.exit(1);
-}
-
-function expandHome(path: string): string {
-  return path.startsWith("~") ? resolve(homedir(), path.slice(1).replace(/^\/+/, "")) : path;
 }
 
 function readSeedFromEnv(): string {
@@ -99,41 +92,6 @@ function addressForReceive(seedHex: string): string {
   }
 }
 
-function resolveRpcCredentials(): { username: string; password: string } {
-  const envUser = process.env.DIVINO_CORE_RPC_USER;
-  const envPassword = process.env.DIVINO_CORE_RPC_PASSWORD;
-
-  if (envUser && envPassword) {
-    return { username: envUser, password: envPassword };
-  }
-  if (envUser || envPassword) {
-    fail("DIVINO_CORE_RPC_USER e DIVINO_CORE_RPC_PASSWORD precisam ser passadas juntas, ou nenhuma das duas.");
-  }
-
-  const cookiePath = expandHome(
-    process.env.DIVINO_CORE_RPC_COOKIE ?? "~/.bitcoin-divino-signet/signet/.cookie",
-  );
-
-  let raw: string;
-  try {
-    raw = readFileSync(cookiePath, "utf8").trim();
-  } catch (cause) {
-    fail(
-      `Não consegui ler o arquivo de cookie RPC em "${cookiePath}".\n` +
-        `  O nó está rodando? O caminho do datadir está certo?\n` +
-        `  Alternativa: exportar DIVINO_CORE_RPC_USER e DIVINO_CORE_RPC_PASSWORD.\n` +
-        `  Detalhe: ${cause instanceof Error ? cause.message : String(cause)}`,
-    );
-  }
-
-  const separatorIndex = raw.indexOf(":");
-  if (separatorIndex < 0) {
-    fail(`O arquivo de cookie em "${cookiePath}" não está no formato usuário:senha esperado.`);
-  }
-
-  return { username: raw.slice(0, separatorIndex), password: raw.slice(separatorIndex + 1) };
-}
-
 async function main() {
   console.log("\n=== SMOKE TEST: bitcoin-core-wallet-client contra o nó real ===\n");
 
@@ -141,7 +99,12 @@ async function main() {
   const address = addressForReceive(seedHex);
   console.log(`Endereço de teste (${RECEIVE_PATH}): ${address}`);
 
-  const { username, password } = resolveRpcCredentials();
+  let username: string, password: string;
+  try {
+    ({ username, password } = resolveBitcoinCoreRpcCredentials());
+  } catch (error) {
+    fail(error instanceof Error ? error.message : String(error));
+  }
   const config: BitcoinCoreWalletConfig = {
     url: process.env.DIVINO_CORE_RPC_URL ?? "http://127.0.0.1:38332",
     username,

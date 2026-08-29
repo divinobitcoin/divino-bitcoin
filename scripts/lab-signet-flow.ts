@@ -33,6 +33,21 @@
  *
  * Sem `--confirmo`, `send` faz tudo menos transmitir e mostra a revisão.
  * Transmitir exige a flag: é o único passo que não volta.
+ *
+ * ## `--via-node` (I-3, CARTA-001)
+ *
+ * `send` transmite pelo Esplora público por padrão. Com `--via-node`,
+ * transmite via `sendrawtransaction` no `bitcoind` do próprio usuário —
+ * mesma disciplina de precheck local (recalcula o txid antes de qualquer
+ * chamada de rede), implementada em
+ * `shared/bitcoin-core-wallet-client.ts::broadcastRawTransactionViaCoreRpc`.
+ * A leitura de saldo continua vindo do Esplora — só o broadcast muda.
+ * Credenciais do nó: mesmas variáveis de `scripts/wallet-core-smoke.ts`
+ * (`DIVINO_CORE_RPC_URL`, cookie file por padrão, ou
+ * `DIVINO_CORE_RPC_USER`/`_PASSWORD`).
+ *
+ *   DIVINO_LAB_SEED=<hex> npx tsx scripts/lab-signet-flow.ts send <destino> <sats> [sat/vB] --via-node
+ *   DIVINO_LAB_SEED=<hex> npx tsx scripts/lab-signet-flow.ts send <destino> <sats> [sat/vB] --via-node --confirmo
  */
 
 import { randomBytes } from "node:crypto";
@@ -41,6 +56,8 @@ import { base64, hex } from "@scure/base";
 import { HDKey } from "@scure/bip32";
 import * as btc from "@scure/btc-signer";
 
+import type { BitcoinCoreRpcConfig } from "../shared/bitcoin-core-rpc-client";
+import { broadcastRawTransactionViaCoreRpc } from "../shared/bitcoin-core-wallet-client";
 import { selectCoins } from "../shared/coin-selection";
 import {
   fetchAddressUtxos,
@@ -55,6 +72,7 @@ import {
   reviewSignedTransaction,
   BroadcastRejectedError,
 } from "../shared/transaction-broadcast";
+import { resolveBitcoinCoreRpcCredentials } from "./bitcoin-core-rpc-env";
 
 /**
  * Endpoint Esplora. Configurável de propósito.
@@ -188,12 +206,21 @@ async function commandBalance(): Promise<void> {
 async function commandSend(args: string[]): Promise<void> {
   const seedHex = readSeedFromEnv();
 
-  const [destino, satsArg, taxaArg] = args;
+  const posicionais = args.filter((a) => !a.startsWith("--"));
+  const [destino, satsArg, taxaArg] = posicionais;
   const confirmado = args.includes("--confirmo");
+  const viaNode = args.includes("--via-node");
 
   if (!destino || !satsArg) {
-    fail("Uso: send <endereco-destino> <sats> [sat/vB] [--confirmo]");
+    fail("Uso: send <endereco-destino> <sats> [sat/vB] [--via-node] [--confirmo]");
   }
+
+  // Resolvido ANTES de montar qualquer coisa: se as credenciais do nó
+  // estiverem erradas, é melhor falhar aqui do que depois de já ter
+  // assinado. Não transmite nada por si só.
+  const nodeConfig: BitcoinCoreRpcConfig | null = viaNode
+    ? { url: process.env.DIVINO_CORE_RPC_URL ?? "http://127.0.0.1:38332", ...resolveBitcoinCoreRpcCredentials() }
+    : null;
 
   const targetSats = Number(satsArg);
   const feeRate = taxaArg && !taxaArg.startsWith("--") ? Number(taxaArg) : 2;
@@ -211,7 +238,8 @@ async function commandSend(args: string[]): Promise<void> {
   console.log(`\nOrigem:   ${receiveAddress}`);
   console.log(`Destino:  ${destino}`);
   console.log(`Valor:    ${formatSats(targetSats)}`);
-  console.log(`Taxa:     ${feeRate} sat/vB\n`);
+  console.log(`Taxa:     ${feeRate} sat/vB`);
+  console.log(`Transmissão via: ${nodeConfig ? `nó próprio (${nodeConfig.url})` : "Esplora público (mempool.space)"}\n`);
 
   const utxos: EsploraUtxo[] = await fetchAddressUtxos(ESPLORA, receiveAddress);
 
@@ -284,14 +312,14 @@ async function commandSend(args: string[]): Promise<void> {
     return;
   }
 
-  console.log("Transmitindo...\n");
+  console.log(`Transmitindo${nodeConfig ? " pelo nó próprio" : ""}...\n`);
 
   try {
-    // Transmite a REVISÃO que foi impressa acima, não outra variável.
-    const resultado = await broadcastRawTransaction({
-      config: ESPLORA,
-      review: revisao,
-    });
+    // Transmite a REVISÃO que foi impressa acima, não outra variável —
+    // nos dois caminhos.
+    const resultado = nodeConfig
+      ? await broadcastRawTransactionViaCoreRpc({ config: nodeConfig, review: revisao })
+      : await broadcastRawTransaction({ config: ESPLORA, review: revisao });
 
     console.log(`ACEITA PELO NÓ.\n`);
     console.log(`  txid: ${resultado.txid}`);
@@ -442,9 +470,11 @@ Ferramenta de laboratório — caminho on-chain na Signet
   balance                               consulta UTXOs do endereço de recebimento
   sign <psbt-base64>                    assina uma PSBT vinda de fora e imprime a assinada
   send <destino> <sats> [sat/vB]        monta, assina e REVISA (não transmite)
-  send <destino> <sats> [sat/vB] --confirmo   transmite de verdade
+  send <destino> <sats> [sat/vB] --confirmo   transmite de verdade (via Esplora)
+  send <destino> <sats> [sat/vB] --via-node --confirmo   transmite via nó próprio
 
 Todos exceto new-seed exigem DIVINO_LAB_SEED no ambiente.
+--via-node exige o bitcoind próprio rodando (mesmas variáveis do wallet-core-smoke.ts).
 `);
       process.exit(comando ? 1 : 0);
   }
