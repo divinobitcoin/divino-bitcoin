@@ -200,20 +200,32 @@ export async function ensureWatchOnlyWallet(
       false, // load_on_startup
     ], fetchImpl);
   } catch (createError) {
-    // Não presumimos que o erro significa "já existe" pelo texto — a
-    // mensagem exata do Core para esse caso não foi verificada aqui.
-    // Em vez disso, tentamos carregar; se carregar também falhar, o erro
-    // combinado é honesto sobre os dois caminhos terem sido tentados.
+    // Confirmado contra o nó real em 29/08/2026: createwallet numa wallet
+    // já existente lança código -4 ("Database already exists"). Não
+    // presumimos isso pelo texto mesmo assim — em vez disso, tentamos
+    // carregar; se carregar também falhar, o erro combinado é honesto
+    // sobre os dois caminhos terem sido tentados.
     try {
       await rpcCall(base, config, "loadwallet", [config.walletName, false], fetchImpl);
       alreadyExisted = true;
     } catch (loadError) {
-      const createMsg = createError instanceof Error ? createError.message : String(createError);
-      const loadMsg = loadError instanceof Error ? loadError.message : String(loadError);
-      throw new Error(
-        `Não foi possível criar nem carregar a wallet "${config.walletName}". ` +
-          `createwallet: ${createMsg} | loadwallet: ${loadMsg}`,
-      );
+      // Código -35 (RPC_WALLET_ALREADY_LOADED) é um caso de SUCESSO
+      // disfarçado de erro: a wallet continua carregada na memória do nó
+      // desde a última vez (bitcoind não descarrega sozinho), e é
+      // exatamente o estado que esta função queria alcançar. Confirmado
+      // contra o nó real: rodar o smoke test duas vezes seguidas produz
+      // esse código na segunda vez. Só o código é checado, não o texto —
+      // -35 é um código estável da API do Core, não uma string frágil.
+      if (loadError instanceof BitcoinCoreRpcError && loadError.rpcCode === -35) {
+        alreadyExisted = true;
+      } else {
+        const createMsg = createError instanceof Error ? createError.message : String(createError);
+        const loadMsg = loadError instanceof Error ? loadError.message : String(loadError);
+        throw new Error(
+          `Não foi possível criar nem carregar a wallet "${config.walletName}". ` +
+            `createwallet: ${createMsg} | loadwallet: ${loadMsg}`,
+        );
+      }
     }
   }
 

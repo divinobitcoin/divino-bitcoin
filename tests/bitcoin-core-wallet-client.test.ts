@@ -74,7 +74,24 @@ describe("ensureWatchOnlyWallet", () => {
     expect(result).toEqual({ walletName: CONFIG.walletName, alreadyExisted: true });
   });
 
-  it("lança erro combinado se createwallet E loadwallet falharem", async () => {
+  it("trata loadwallet com código -35 (já carregada) como sucesso, não como erro", async () => {
+    // Reproduz o que aconteceu de verdade contra o nó real em 29/08/2026:
+    // rodar o smoke test duas vezes seguidas sem descarregar a wallet faz
+    // o createwallet falhar (já existe) E o loadwallet falhar também, mas
+    // com "already loaded" — que não é uma falha real, é o estado que a
+    // função queria alcançar.
+    const fetchImpl = jsonRpcRouter({
+      createwallet: () => new ErrorResult({ code: -4, message: "Database already exists." }),
+      loadwallet: () => new ErrorResult({ code: -35, message: `Wallet "${CONFIG.walletName}" is already loaded.` }),
+      getwalletinfo: () => ({ private_keys_enabled: false, descriptors: true }),
+    });
+
+    const result = await ensureWatchOnlyWallet(CONFIG, fetchImpl);
+
+    expect(result).toEqual({ walletName: CONFIG.walletName, alreadyExisted: true });
+  });
+
+  it("lança erro combinado se createwallet E loadwallet falharem por outro motivo", async () => {
     const fetchImpl = jsonRpcRouter({
       createwallet: () => new ErrorResult({ code: -4, message: "motivo A" }),
       loadwallet: () => new ErrorResult({ code: -18, message: "motivo B" }),
