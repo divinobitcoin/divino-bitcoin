@@ -30,9 +30,11 @@ const env = {
   // App branding - update these values directly (do not use env vars)
   appName: "Divino Bitcoin",
   appSlug: "divino-bitcoin-lightning-app",
-  // S3 URL of the app logo - set this to the URL returned by generate_image when creating custom logo
-  // Leave empty to use the default icon from assets/images/icon.png
-  logoUrl: "/manus-storage/divino-bitcoin-icon_c3ae66a3.png",
+  // Vazio de propósito: o ícone vem de assets/images/icon.png, do repositório.
+  // Apontava para "/manus-storage/divino-bitcoin-icon_c3ae66a3.png" — caminho de
+  // armazenamento de terceiro que não existe aqui. O campo é declarado e nunca
+  // lido (verificado), então não havia efeito em execução; era ponteiro morto.
+  logoUrl: "",
   scheme: schemeFromBundleId,
   iosBundleId: bundleId,
   androidPackage: bundleId,
@@ -55,9 +57,15 @@ const config: ExpoConfig = {
   },
   android: {
     adaptiveIcon: {
-      backgroundColor: "#E6F4FE",
+      // Obsidiana, a cor de fundo da identidade. Era "#E6F4FE" — azul claro que
+      // nunca foi escolha de marca: é a cor de fundo do template de ícone
+      // adaptativo do Android, que veio junto com o andaime e ficou.
+      backgroundColor: "#080808",
       foregroundImage: "./assets/images/android-icon-foreground.png",
-      backgroundImage: "./assets/images/android-icon-background.png",
+      // backgroundImage removido de propósito: o arquivo que estava aqui era a
+      // prancha de guias do template (círculos de zona segura em azul claro),
+      // nunca substituída. Com a camada de fundo sendo cor sólida, o
+      // backgroundColor acima resolve sozinho.
       monochromeImage: "./assets/images/android-icon-monochrome.png",
     },
     package: env.androidPackage,
@@ -127,9 +135,12 @@ const config: ExpoConfig = {
         image: "./assets/images/splash-icon.png",
         imageWidth: 200,
         resizeMode: "contain",
-        backgroundColor: "#ffffff",
+        // Obsidiana nos dois modos. A identidade é escura e não define tema
+        // claro — ver constants/palette.ts. Um splash branco abriria o
+        // aplicativo com um clarão que nenhuma tela depois repete.
+        backgroundColor: "#080808",
         dark: {
-          backgroundColor: "#000000",
+          backgroundColor: "#080808",
         },
       },
     ],
