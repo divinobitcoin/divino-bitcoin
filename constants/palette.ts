@@ -11,10 +11,36 @@
  * calculado pela fórmula WCAG antes de entrar aqui.
  *
  * Isso importa porque legibilidade em tema escuro é fácil de errar pela
- * intuição. Um exemplo concreto, medido: **texto creme sobre âmbar dá 2,35:1 e
- * reprova** no critério AA. A escolha óbvia — texto branco em botão laranja —
- * seria ilegível para parte das pessoas. Sobre âmbar o texto tem que ser
- * escuro: `obsidiana` sobre `ambarBitcoin` dá 7,65:1 e passa.
+ * intuição. Um exemplo concreto, medido: **texto creme sobre o amarelo dá
+ * 1,81:1 e reprova** no critério AA; branco dá 2,01:1 e também reprova. A
+ * escolha óbvia — texto branco em botão amarelo — seria ilegível para parte
+ * das pessoas. Sobre o amarelo o texto tem que ser escuro: `obsidiana` sobre
+ * `amareloBitcoin` dá 9,97:1 e passa.
+ *
+ * ## Contraste não é a única medida — distinguibilidade também importa
+ *
+ * Contraste WCAG responde "dá para ler este texto sobre este fundo". Não
+ * responde "dá para diferenciar estas duas cores uma da outra". Para isso a
+ * medida é **Delta-E** (distância perceptual em CIELAB): abaixo de ~10 o olho
+ * lê como a mesma cor.
+ *
+ * Isso deixou de ser teórico quando a ação primária passou a ser
+ * `#F2A900`. Medido, na configuração anterior a esta:
+ *
+ *     acaoPrimaria vs cores.rede   dE  7,9   -> mesma cor
+ *     acaoPrimaria vs cores.aviso  dE  9,6   -> mesma cor
+ *
+ * Três papéis colapsavam num só: o botão que se aperta, o selo que diz em que
+ * rede você está, e o bloco de aviso. Numa carteira isso não é estética — o
+ * `T10` do threat model exige que a rede esteja sempre distinguível, e um
+ * aviso com a cara de um botão é um aviso que ninguém lê.
+ *
+ * A configuração atual separa os três, medido:
+ *
+ *     acaoPrimaria vs aviso   dE  20,5
+ *     acaoPrimaria vs rede    dE 131,4
+ *     aviso        vs rede    dE 123,8
+ *     aviso        vs perigo  dE  49,7
  *
  * ## Como usar
  *
@@ -53,9 +79,26 @@ export const identidade = {
   grafite: "#131518",
   /** Superfície elevada: linha de lista, campo. */
   grafiteAlto: "#1D2022",
-  /** Laranja de ação, vivo. Botão preenchido. */
+  /**
+   * **Amarelo Bitcoin — a cor de ação primária.** Decisão do proprietário,
+   * 29/08/2026, unificando aplicativo e canal.
+   *
+   * Divergência conhecida e deliberada: está a **Delta-E 20,5** do
+   * `ambarBitcoin` amostrado dos mockups. Ou seja, o aplicativo
+   * **deliberadamente não bate mais com os mockups antigos** — são os mockups
+   * que devem ser atualizados, não esta cor que deve ser revertida. Registrado
+   * aqui para que ninguém "descubra" a divergência depois e a trate como erro
+   * de transcrição.
+   */
+  amareloBitcoin: "#F2A900",
+  /**
+   * Âmbar amostrado dos mockups. **Já foi a ação primária; hoje é o aviso.**
+   * Perdeu o papel de ação para `amareloBitcoin` e ganhou o de `cores.aviso`,
+   * onde a distância perceptual (dE 20,5 do amarelo) funciona. A identidade
+   * não cresceu com essa mudança — apenas se reorganizou.
+   */
   ambarBitcoin: "#EF8502",
-  /** Dourado de acento, contorno e estado de rede. */
+  /** Dourado de acento e contorno. **Não é mais o estado de rede** — ver `cores.rede`. */
   ouroContido: "#EBA11F",
   /** Dourado mais contido, para acentos secundários. */
   ouroSuave: "#DB9321",
@@ -92,15 +135,26 @@ export const cores = {
   textoTerciario: "#948C82",
 
   // — Ação ———————————————————————————————————————————————————————
-  /** Botão principal. */
-  acaoPrimaria: identidade.ambarBitcoin,
+  /** Botão principal. 9,97:1 sobre o fundo; 9,10:1 sobre cartão; 8,15:1 sobre campo. */
+  acaoPrimaria: identidade.amareloBitcoin,
   /**
    * Texto sobre a ação principal. **Escuro de propósito.**
-   * Creme sobre âmbar dá 2,35:1 e reprova; obsidiana dá 7,65:1 e passa.
-   * Confirmado pelos próprios mockups: os botões cheios têm texto escuro.
+   * Creme sobre o amarelo dá 1,81:1 e reprova; branco dá 2,01:1 e reprova;
+   * obsidiana dá 9,97:1 e passa.
    */
   acaoPrimariaTexto: identidade.obsidiana,
-  /** Botão secundário: sem preenchimento, texto na cor de ação. */
+  /**
+   * Botão secundário: sem preenchimento, texto na cor de ação.
+   *
+   * `ouroContido` fica a dE 7,9 de `acaoPrimaria` — para o olho, a mesma cor.
+   * Isso é **aceito aqui e só aqui**, porque primário e secundário são o mesmo
+   * papel funcional e quem os separa é a forma, não o matiz: primário é
+   * **preenchido**, secundário é **contornado**.
+   *
+   * Pelo mesmo motivo, `ouroContido` é **proibido** para rede, aviso, erro,
+   * sucesso ou qualquer sinalização de estado — ali a cor precisa distinguir
+   * sozinha, e esta não distingue.
+   */
   acaoSecundariaTexto: identidade.ouroContido,
   /** Fundo sutil para botão secundário. */
   acaoSecundariaFundo: "transparent",
@@ -112,20 +166,42 @@ export const cores = {
   perigo: "#F87171",
   /** Confirmação. 11,33:1 sobre o fundo. */
   sucesso: "#4ADE80",
-  /** Aviso que pede atenção sem impedir. 11,83:1 sobre o fundo. */
-  aviso: "#FBBF24",
   /**
-   * Identificação de rede. Signet é ambiente de teste e precisa estar sempre
-   * visível — requisito `T10` do threat model, que exige tela de rede
-   * proeminente e proíbe confusão entre ambientes.
+   * Aviso que pede atenção sem impedir. 7,65:1 sobre o fundo; 6,43:1 sobre
+   * `avisoSuperficie`. Se o bloco for preenchido com esta cor, o texto é
+   * `avisoTexto` (escuro), nunca creme.
+   *
+   * Era `#FBBF24`, que ficava a dE 9,6 da ação primária — um aviso com a
+   * mesma cara de um botão. Hoje é o âmbar dos mockups, a dE 20,5.
    */
-  rede: identidade.ouroContido,
+  aviso: identidade.ambarBitcoin,
+  /** Texto sobre bloco de aviso preenchido. Escuro: obsidiana sobre o âmbar dá 7,65:1. */
+  avisoTexto: identidade.obsidiana,
+  /**
+   * Identificação de rede de teste. Signet precisa estar sempre visível e
+   * nunca ser confundida com Mainnet — requisito `T10` do threat model.
+   *
+   * **Exceção semântica de segurança: é a única cor fria da paleta, e existe
+   * só para este papel.** Não entra na identidade geral. Proibida em botões,
+   * ilustrações, gráficos ou decoração — se aparecer em outro lugar, deixa de
+   * sinalizar rede de teste e volta a ser enfeite.
+   *
+   * 7,36:1 sobre o fundo, 6,72:1 sobre cartão, 6,02:1 sobre campo. A dE 131,4
+   * da ação primária — impossível de confundir com um botão.
+   *
+   * **A cor não trabalha sozinha.** O componente de rede precisa carregar, ao
+   * mesmo tempo: o texto literal `SIGNET`, a forma de pílula contornada, esta
+   * cor, e um rótulo acessível equivalente a "Rede de teste Signet". É o
+   * princípio da WCAG de que informação não deve depender só de cor — quem
+   * não distingue matiz precisa receber a mesma informação por texto e forma.
+   */
+  rede: "#A78BFA",
 
   /** Superfície tingida para bloco de erro. Perigo sobre ela: 6,40:1. */
   perigoSuperficie: "#241416",
   /** Superfície tingida para bloco de sucesso. Sucesso sobre ela: 9,68:1. */
   sucessoSuperficie: "#122018",
-  /** Superfície tingida para bloco de aviso. Aviso sobre ela: 10,08:1. */
+  /** Superfície tingida para bloco de aviso. Aviso sobre ela: 6,43:1. */
   avisoSuperficie: "#241C0E",
   /**
    * Texto sobre o botão de perigo preenchido. Escuro pelo mesmo motivo da ação
@@ -134,7 +210,14 @@ export const cores = {
   perigoTexto: identidade.obsidiana,
 
   // — Acento —————————————————————————————————————————————————————
-  /** Destaque raro, como valor em evidência. 15,18:1 sobre o fundo. */
+  /**
+   * Destaque raro, como valor em evidência. 15,18:1 sobre o fundo.
+   *
+   * Pertence à família quente e fica a dE 15,2 da ação primária — perto.
+   * Aceitável porque é destaque decorativo, sem significado de estado.
+   * **Não usar para comunicar estado nenhum** pelo mesmo motivo de
+   * `acaoSecundariaTexto`.
+   */
   acento: identidade.ouroSuave,
 
   // — Transparências —————————————————————————————————————————————
