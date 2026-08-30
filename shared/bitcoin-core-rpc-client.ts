@@ -54,11 +54,14 @@ export async function scanAddressUtxoSet(
     }),
   });
 
-  if (!response.ok) {
-    throw new Error(`Chamada RPC falhou com status HTTP ${response.status}.`);
-  }
-
-  const body = (await response.json()) as {
+  // O Core devolve HTTP 500 (não 200) para a maioria dos erros de nível
+  // RPC, com a mensagem real dentro do corpo JSON-RPC — não no status.
+  // Checar `!response.ok` antes de ler o corpo descartaria essa mensagem
+  // e trocaria por um "status HTTP 500" genérico e inútil. Mesmo achado e
+  // mesma correção já feitos em bitcoin-core-wallet-client.ts::rpcCall
+  // contra o nó real (RPC-HTTP-STATUS-001); ler o corpo primeiro aqui
+  // fecha o mesmo achado neste módulo.
+  let body: {
     error?: { message?: string } | null;
     result?: {
       success?: boolean;
@@ -67,13 +70,25 @@ export async function scanAddressUtxoSet(
       bestblock?: string;
       height?: number;
     } | null;
-  };
+  } | null = null;
 
-  if (body.error) {
+  try {
+    body = await response.json();
+  } catch {
+    body = null;
+  }
+
+  if (body?.error) {
     throw new Error(`Erro retornado pelo nó: ${body.error.message ?? "desconhecido"}.`);
   }
 
-  const result = body.result;
+  if (!response.ok) {
+    throw new Error(
+      `Chamada RPC falhou com status HTTP ${response.status}, sem corpo de erro JSON-RPC legível.`,
+    );
+  }
+
+  const result = body?.result;
 
   if (!result || result.success !== true) {
     throw new Error("scantxoutset não retornou um resultado bem-sucedido.");

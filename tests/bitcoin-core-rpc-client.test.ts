@@ -70,13 +70,26 @@ describe("scanAddressUtxoSet (leitura via scantxoutset, sem wallet/assinatura)",
     expect(summary.utxoCount).toBe(2);
   });
 
-  it("lança erro claro quando o RPC retorna erro", async () => {
+  it("lança erro claro quando o RPC retorna erro (corpo JSON-RPC, HTTP 2xx)", async () => {
     const fetchImpl = mockFetch({ error: { message: "credenciais inválidas" } });
 
     await expect(scanAddressUtxoSet(CONFIG, ADDRESS, fetchImpl)).rejects.toThrow("credenciais inválidas");
   });
 
-  it("lança erro claro quando a resposta HTTP não é 2xx", async () => {
+  // RPC-HTTP-STATUS-001: o Core real devolve HTTP 500 (não 200) para a
+  // maioria dos erros de nível RPC, com a mensagem real no corpo JSON-RPC.
+  // Este teste existe porque a versão anterior deste mock sempre respondia
+  // `ok: true` para o caso de erro, escondendo um bug real: o código lia
+  // `!response.ok` antes do corpo e descartava a mensagem, trocando por um
+  // "status HTTP 500" genérico. O mesmo achado apareceu contra o nó real em
+  // shared/bitcoin-core-wallet-client.ts e foi corrigido lá primeiro.
+  it("lança erro claro quando o RPC retorna erro via HTTP 500 (comportamento real do Core)", async () => {
+    const fetchImpl = mockFetch({ error: { message: "credenciais inválidas" } }, false, 500);
+
+    await expect(scanAddressUtxoSet(CONFIG, ADDRESS, fetchImpl)).rejects.toThrow("credenciais inválidas");
+  });
+
+  it("lança erro claro quando a resposta HTTP não é 2xx e não tem corpo JSON-RPC legível", async () => {
     const fetchImpl = mockFetch({}, false, 401);
 
     await expect(scanAddressUtxoSet(CONFIG, ADDRESS, fetchImpl)).rejects.toThrow("status HTTP 401");
