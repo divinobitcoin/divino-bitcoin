@@ -1,7 +1,7 @@
 # NODE-PROPRIO-ESCRITA-001 — primeira transmissão via `sendrawtransaction` pelo nó próprio
 
 **Status:** FECHADO para o que este documento afirma — ver "O que isto NÃO estabelece".
-**Data:** 30/08/2026
+**Data:** 29/08/2026
 
 ## O que aconteceu
 
@@ -13,7 +13,7 @@ público. Escrito contra respostas simuladas; nunca tinha tocado um nó
 real.
 
 `scripts/lab-signet-flow.ts send <destino> <sats> [sat/vB] --via-node
---confirmo` (adicionado em `578814e`) foi exercitado em 30/08/2026 contra
+--confirmo` (adicionado em `578814e`) foi exercitado em 29/08/2026 contra
 `~/.bitcoin-divino-signet`, com seed de laboratório descartável, gerada
 depois de um reboot que apagou a seed e o processo anteriores — recomeço
 completo do zero, faucet incluído.
