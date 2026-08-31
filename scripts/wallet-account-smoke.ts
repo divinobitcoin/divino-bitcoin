@@ -190,48 +190,77 @@ async function main() {
   console.log("--- Passo 3: ler pelo nó ---");
   const saldoNo = await getWatchOnlyBalanceSummary(config);
   const utxosNo = await listWatchOnlyUtxos(config);
+  // `listunspent` devolve confirmados E não confirmados. Separar aqui é
+  // obrigatório: comparar a lista inteira do nó contra só os confirmados do
+  // Esplora é comparar coisas diferentes, e foi assim que a primeira versão
+  // deste script declarou divergência onde as duas fontes concordavam.
+  const utxosNoConfirmados = utxosNo.filter((u) => u.confirmed);
+  const utxosNoPendentes = utxosNo.filter((u) => !u.confirmed);
   console.log(
-    `Nó — confirmado: ${saldoNo.trustedSats} sat | pendente: ${saldoNo.untrustedPendingSats} sat | UTXOs: ${utxosNo.length}`,
+    `Nó — confirmado: ${saldoNo.trustedSats} sat (${utxosNoConfirmados.length} UTXO) | ` +
+      `pendente: ${saldoNo.untrustedPendingSats} sat (${utxosNoPendentes.length} UTXO)`,
   );
 
   console.log("\n--- Passo 4: somar os mesmos endereços pelo Esplora, para comparar ---");
   const esplora: EsploraConfig = { baseUrl: process.env.DIVINO_LAB_ESPLORA ?? "https://mempool.space/signet/api" };
   const todos = [...enderecos.recebimento, ...enderecos.troco];
   let confirmadoEsplora = 0;
-  let utxosEsplora = 0;
+  let pendenteEsplora = 0;
+  let utxosConfirmadosEsplora = 0;
+  let utxosPendentesEsplora = 0;
   for (const address of todos) {
     const utxos = await fetchAddressUtxos(esplora, address);
     const confirmados = utxos.filter((u) => u.confirmed);
+    const pendentes = utxos.filter((u) => !u.confirmed);
     confirmadoEsplora += sumUtxoValueSats(confirmados);
-    utxosEsplora += confirmados.length;
+    pendenteEsplora += sumUtxoValueSats(pendentes);
+    utxosConfirmadosEsplora += confirmados.length;
+    utxosPendentesEsplora += pendentes.length;
   }
-  console.log(`Esplora — confirmado: ${confirmadoEsplora} sat | UTXOs: ${utxosEsplora}  (${todos.length} endereços consultados)`);
+  console.log(
+    `Esplora — confirmado: ${confirmadoEsplora} sat (${utxosConfirmadosEsplora} UTXO) | ` +
+      `pendente: ${pendenteEsplora} sat (${utxosPendentesEsplora} UTXO)   [${todos.length} endereços consultados]`,
+  );
 
   console.log("\n--- Veredito ---");
-  const bateSaldo = saldoNo.trustedSats === confirmadoEsplora;
-  const bateContagem = utxosNo.length === utxosEsplora;
+  const bateConfirmado =
+    saldoNo.trustedSats === confirmadoEsplora && utxosNoConfirmados.length === utxosConfirmadosEsplora;
+  const batePendente = saldoNo.untrustedPendingSats === pendenteEsplora;
 
-  if (bateSaldo && bateContagem) {
-    console.log("Saldo e contagem de UTXOs BATEM entre o nó e o Esplora, para a conta inteira.");
+  if (!bateConfirmado || !batePendente) {
+    console.log("As duas fontes NÃO concordam. Isto é um achado, não um erro do script:");
+    console.log(`  confirmado:  nó ${saldoNo.trustedSats} sat / ${utxosNoConfirmados.length} UTXO` +
+      `   vs Esplora ${confirmadoEsplora} sat / ${utxosConfirmadosEsplora} UTXO`);
+    console.log(`  pendente:    nó ${saldoNo.untrustedPendingSats} sat   vs Esplora ${pendenteEsplora} sat`);
     console.log(
-      "Isto estabelece que a carteira pode saber quais endereços são dela\n" +
-        "perguntando ao nó do próprio usuário, sem derivar nada no aplicativo\n" +
-        "e sem perguntar a servidor de terceiro.",
+      "  Investigar nesta ordem: janela de rescan (o nó é podado), faixa curta\n" +
+        "  demais, ou propagação — o mempool do seu nó e o do Esplora não são o mesmo.",
     );
-    if (confirmadoEsplora === 0) {
-      console.log(
-        "\nATENÇÃO: os dois deram ZERO. Bater em zero prova que o import foi aceito\n" +
-          "e que as duas fontes concordam, mas NÃO prova que o nó encontra fundos.\n" +
-          "Para a prova completa, mande moeda de faucet para o endereço de\n" +
-          "recebimento acima, espere confirmar, e rode de novo.",
-      );
-    }
-  } else {
-    console.log("Os valores NÃO batem. Isto é um achado, não um erro do script:");
-    console.log(`  saldo:  nó ${saldoNo.trustedSats} vs Esplora ${confirmadoEsplora}`);
-    console.log(`  UTXOs:  nó ${utxosNo.length} vs Esplora ${utxosEsplora}`);
-    console.log("  Causa provável a investigar primeiro: janela de rescan (o nó é podado) ou faixa curta demais.");
     process.exit(1);
+  }
+
+  console.log("As duas fontes CONCORDAM, no confirmado e no pendente, para a conta inteira.");
+
+  if (confirmadoEsplora > 0) {
+    console.log(
+      "\nPROVADO: o nó encontra fundos da conta a partir dos descriptors, e o que\n" +
+        "ele reporta bate com uma fonte independente. A carteira pode saber quais\n" +
+        "endereços são dela perguntando ao nó do próprio usuário — sem derivar\n" +
+        "nada no aplicativo e sem perguntar a servidor de terceiro.",
+    );
+  } else if (pendenteEsplora > 0 || saldoNo.untrustedPendingSats > 0) {
+    console.log(
+      "\nQUASE: o nó JÁ VIU o pagamento, mas ele ainda está no mempool.\n" +
+        "Isso prova que o import foi aceito e que os descriptors estão sendo\n" +
+        "observados de verdade. Falta a confirmação em bloco para fechar.\n" +
+        "Espere um bloco e rode de novo.",
+    );
+  } else {
+    console.log(
+      "\nINCOMPLETO: os dois deram zero em tudo. Concordar em zero prova que o\n" +
+        "import foi aceito, mas NÃO prova que o nó encontra fundos.\n" +
+        `Mande moeda de faucet para ${enderecos.recebimento[0]} e rode de novo.`,
+    );
   }
   console.log();
 }
