@@ -289,6 +289,42 @@ export async function importWatchOnlyDescriptors(
     internal: boolean;
   }> = [];
 
+  /**
+   * Faixas já registradas na wallet, por descriptor completo (com checksum).
+   *
+   * **Por que isto existe.** O Core recusa reimportar um descriptor ativo com
+   * faixa menor: `new range must include current range = [0,1000]`. E ele
+   * expande a faixa sozinho — o keypool padrão de uma wallet descriptor é bem
+   * maior do que a faixa pedida no primeiro import. Consequência: sem ler a
+   * faixa atual, a **segunda** execução sempre falha, mesmo que a primeira
+   * tenha funcionado.
+   *
+   * O Core está certo em recusar. Encolher a faixa faria a carteira perder de
+   * vista endereços que ela já observa — e perder de vista um endereço com
+   * fundos é como um saldo some. Então este módulo nunca encolhe: usa o maior
+   * entre o que foi pedido e o que já existe.
+   *
+   * Achado contra nó real em 31/08/2026, na segunda execução do
+   * `scripts/wallet-account-smoke.ts`. Mesma classe do `-35` de `loadwallet`:
+   * a operação não era idempotente.
+   */
+  const faixasExistentes = new Map<string, number>();
+  try {
+    const atual = await rpcCall<{
+      descriptors?: Array<{ desc?: string; range?: [number, number] }>;
+    }>(walletUrl(config), config, "listdescriptors", [], fetchImpl);
+
+    for (const d of atual.descriptors ?? []) {
+      if (d.desc && Array.isArray(d.range) && typeof d.range[1] === "number") {
+        faixasExistentes.set(d.desc, d.range[1]);
+      }
+    }
+  } catch {
+    // Wallet recém-criada ainda não tem descriptors, e versões antigas podem
+    // não expor `listdescriptors`. Nos dois casos não há faixa a preservar:
+    // seguir com a faixa pedida é o comportamento correto.
+  }
+
   for (const branch of branches) {
     const info = await rpcCall<{ checksum?: string; hasprivatekeys?: boolean }>(
       walletUrl(config),
@@ -312,10 +348,14 @@ export async function importWatchOnlyDescriptors(
       );
     }
 
+    const comChecksum = `${branch.desc}#${info.checksum}`;
+    // Nunca encolher: o Core recusa, e encolher perderia endereços de vista.
+    const fimDaFaixa = Math.max(descriptors.rangeEnd, faixasExistentes.get(comChecksum) ?? 0);
+
     requests.push({
-      desc: `${branch.desc}#${info.checksum}`,
+      desc: comChecksum,
       active: true,
-      range: [0, descriptors.rangeEnd],
+      range: [0, fimDaFaixa],
       next_index: 0,
       timestamp: descriptors.birthday,
       internal: branch.internal,

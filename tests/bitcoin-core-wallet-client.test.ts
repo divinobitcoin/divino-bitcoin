@@ -149,6 +149,65 @@ describe("importWatchOnlyDescriptors", () => {
     expect(importCalled).toBe(true);
   });
 
+  // RANGE-SHRINK-001, achado contra o nó real em 31/08/2026, na SEGUNDA
+  // execução de scripts/wallet-account-smoke.ts. A primeira importou com
+  // sucesso; o Core então expandiu a faixa para o keypool dele (1000), e a
+  // segunda tentou reimportar com [0,9] e foi recusada:
+  //
+  //   Could not add descriptor '...': new range must include current range = [0,1000]
+  //
+  // O Core está certo: encolher a faixa faria a carteira perder de vista
+  // endereços que já observa, e perder de vista endereço com fundos é saldo
+  // que some. Quem estava errado era o módulo, que não lia a faixa atual.
+  // Mesma classe do -35 de loadwallet: operação que só falha na segunda vez.
+  it("preserva a faixa já existente em vez de encolher (RANGE-SHRINK-001)", async () => {
+    const faixasPedidas: Array<[number, number]> = [];
+    const fetchImpl = jsonRpcRouter({
+      listdescriptors: () => ({
+        descriptors: [
+          { desc: `${DESCRIPTORS.receive}#abcd1234`, range: [0, 1000] },
+          { desc: `${DESCRIPTORS.change}#abcd1234`, range: [0, 1000] },
+        ],
+      }),
+      getdescriptorinfo: () => ({ checksum: "abcd1234", hasprivatekeys: false }),
+      importdescriptors: (params) => {
+        for (const req of params[0] as Array<{ range: [number, number] }>) {
+          faixasPedidas.push(req.range);
+        }
+        return [{ success: true }, { success: true }];
+      },
+    });
+
+    // Pede 9, mas a wallet já está em 1000.
+    await importWatchOnlyDescriptors(CONFIG, { ...DESCRIPTORS, rangeEnd: 9 }, fetchImpl);
+
+    expect(faixasPedidas).toEqual([
+      [0, 1000],
+      [0, 1000],
+    ]);
+  });
+
+  it("usa a faixa pedida quando a wallet ainda não tem o descriptor", async () => {
+    const faixasPedidas: Array<[number, number]> = [];
+    const fetchImpl = jsonRpcRouter({
+      listdescriptors: () => ({ descriptors: [] }),
+      getdescriptorinfo: () => ({ checksum: "abcd1234", hasprivatekeys: false }),
+      importdescriptors: (params) => {
+        for (const req of params[0] as Array<{ range: [number, number] }>) {
+          faixasPedidas.push(req.range);
+        }
+        return [{ success: true }, { success: true }];
+      },
+    });
+
+    await importWatchOnlyDescriptors(CONFIG, { ...DESCRIPTORS, rangeEnd: 9 }, fetchImpl);
+
+    expect(faixasPedidas).toEqual([
+      [0, 9],
+      [0, 9],
+    ]);
+  });
+
   it("recusa importar se um descriptor tiver chave privada", async () => {
     const fetchImpl = jsonRpcRouter({
       getdescriptorinfo: () => ({ checksum: "abcd1234", hasprivatekeys: true }),
