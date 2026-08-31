@@ -62,6 +62,24 @@ import { resolveBitcoinCoreRpcCredentials } from "./bitcoin-core-rpc-env";
 
 const ACCOUNT_PATH = "m/84'/1'/0'";
 
+/**
+ * Bytes de versão da família testnet, à qual a Signet pertence.
+ *
+ * **Achado real, 31/08/2026.** O `@scure/bip32` serializa a chave estendida
+ * com os bytes de mainnet por padrão, produzindo `xpub`. O Bitcoin Core valida
+ * esses bytes contra a cadeia em que está rodando e recusa:
+ *
+ *     wpkh(): key 'xpub6CsFd1KN92...' is not valid (código -5)
+ *
+ * O caminho de derivação já estava certo — `m/84'/1'/0'`, coin type 1 é
+ * testnet. Era só a serialização.
+ *
+ * Verificado: trocar a versão **não muda endereço nenhum**. Os bytes de versão
+ * são serialização pura; a derivação de chave é a mesma. Uma seed já usada
+ * continua controlando exatamente os mesmos endereços.
+ */
+const VERSOES_TESTNET = { private: 0x04358394, public: 0x043587cf };
+
 function fail(message: string): never {
   console.error(`\nERRO: ${message}\n`);
   process.exit(1);
@@ -89,12 +107,19 @@ function readSeedFromEnv(): string {
  * todos os nós intermediários.
  */
 function derivarConta(seedHex: string, rangeEnd: number) {
-  const root = HDKey.fromMasterSeed(hex.decode(seedHex));
+  const root = HDKey.fromMasterSeed(hex.decode(seedHex), VERSOES_TESTNET);
   try {
     const conta = root.derive(ACCOUNT_PATH);
     try {
       const xpub = conta.publicExtendedKey;
       if (!xpub) fail(`Derivação em ${ACCOUNT_PATH} não produziu chave estendida pública.`);
+      if (!xpub.startsWith("tpub")) {
+        fail(
+          `A chave estendida saiu como "${xpub.slice(0, 4)}", não "tpub".\n` +
+            "  O Bitcoin Core em Signet recusa chave serializada como mainnet.\n" +
+            "  Isso indica que VERSOES_TESTNET não foi aplicada na derivação.",
+        );
+      }
 
       const enderecos: { recebimento: string[]; troco: string[] } = { recebimento: [], troco: [] };
       for (const [ramo, rotulo] of [[0, "recebimento"], [1, "troco"]] as const) {

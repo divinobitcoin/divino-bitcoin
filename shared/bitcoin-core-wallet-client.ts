@@ -70,9 +70,20 @@ export type BitcoinCoreWalletConfig = BitcoinCoreRpcConfig & {
 };
 
 export type WatchOnlyDescriptors = {
-  /** Descriptor público de recebimento, ex: "wpkh(xpub.../0/*)". Sem chave privada. */
+  /**
+   * Descriptor público de recebimento, ex: `wpkh(tpub.../0/*)`. Sem chave privada.
+   *
+   * **A chave estendida precisa estar serializada para a rede do nó.** O Core
+   * valida os bytes de versão contra a cadeia em que roda, e recusa um `xpub`
+   * (mainnet) num nó de Signet com `key ... is not valid` (código -5). Em
+   * Signet e testnet, use `tpub`.
+   *
+   * Isso é serialização, não derivação: a mesma seed produz exatamente os
+   * mesmos endereços nas duas formas. Verificado empiricamente em 31/08/2026,
+   * depois de o nó real recusar um `xpub`.
+   */
   receive: string;
-  /** Descriptor público de troco, ex: "wpkh(xpub.../1/*)". Sem chave privada. */
+  /** Descriptor público de troco, ex: `wpkh(tpub.../1/*)`. Mesma regra de rede acima. */
   change: string;
   /**
    * A partir de quando escanear o histórico. "now" é aceitável só para
