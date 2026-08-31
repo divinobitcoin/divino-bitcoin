@@ -109,11 +109,46 @@ export const identidade = {
 } as const;
 
 /**
- * Tokens por função. É isto que as telas devem importar.
+ * O contrato que **todo** tema precisa cumprir.
+ *
+ * Existe para que um tema claro, se um dia for feito, não possa ser entregue
+ * pela metade: o TypeScript recusa uma paleta que esqueça um token. Não é
+ * documentação — é obrigação verificada pelo `pnpm check`.
+ */
+export type TemaCores = {
+  fundo: string;
+  superficie: string;
+  superficieAlta: string;
+  borda: string;
+  bordaAcento: string;
+  textoPrimario: string;
+  textoSecundario: string;
+  textoTerciario: string;
+  acaoPrimaria: string;
+  acaoPrimariaTexto: string;
+  acaoSecundariaTexto: string;
+  acaoSecundariaFundo: string;
+  acaoSecundariaBorda: string;
+  aviso: string;
+  avisoTexto: string;
+  rede: string;
+  perigo: string;
+  sucesso: string;
+  perigoSuperficie: string;
+  sucessoSuperficie: string;
+  avisoSuperficie: string;
+  perigoTexto: string;
+  acento: string;
+  ondulacaoClara: string;
+  ondulacaoEscura: string;
+};
+
+/**
+ * Tokens por função, no tema escuro. É isto que as telas importam hoje.
  *
  * O contraste anotado em cada comentário foi calculado, não estimado.
  */
-export const cores = {
+export const paletaEscura = {
   // — Superfícies ————————————————————————————————————————————————
   /** Fundo da tela. */
   fundo: identidade.obsidiana,
@@ -225,7 +260,66 @@ export const cores = {
   ondulacaoClara: "rgba(251, 242, 223, 0.14)",
   /** Ondulação de toque sobre a ação primária. */
   ondulacaoEscura: "rgba(8, 11, 12, 0.20)",
-} as const;
+} as const satisfies TemaCores;
+
+/**
+ * A paleta ativa. As telas importam `cores` e não sabem qual tema é.
+ *
+ * Hoje aponta direto para `paletaEscura`, porque **existe um tema só**. Essa
+ * indireção é de propósito: o dia em que houver `paletaClara`, o que muda é
+ * esta linha e a forma de escolher — não as telas.
+ */
+export const cores = paletaEscura;
+
+/**
+ * ## Como acrescentar um tema claro, quando for a hora
+ *
+ * Está registrado aqui porque a parte difícil não é óbvia, e quem tentar o
+ * caminho intuitivo vai produzir uma tela ilegível que passa nas quatro
+ * validações — elas não medem contraste.
+ *
+ * **Tema claro NÃO é inverter o fundo.** Medido pela fórmula WCAG, sobre
+ * branco `#FFFFFF` (e sobre `#F7F9FC`, que era o fundo claro destas telas):
+ *
+ *     amarelo     #F2A900   2,01:1   (1,91:1)   reprova
+ *     ouroContido #EBA11F   2,18:1   (2,06:1)   reprova
+ *     ouroSuave   #DB9321   2,56:1   (2,43:1)   reprova
+ *     aviso       #EF8502   2,62:1   (2,48:1)   reprova
+ *     sucesso     #4ADE80   1,74:1   (1,65:1)   reprova
+ *     perigo      #F87171   2,77:1   (2,62:1)   reprova
+ *     rede        #A78BFA   2,72:1   (2,58:1)   reprova
+ *
+ * **As sete cores de acento reprovam como texto em fundo claro.** Todas, sem
+ * exceção — porque todas foram escolhidas para viver sobre obsidiana. Um tema
+ * claro precisa de um **segundo conjunto de valores** para cada acento, mais
+ * escuros, e cada um recalculado. É trabalho de identidade, não de código.
+ *
+ * O que sobrevive à troca: `acaoPrimariaTexto` continua escuro. Obsidiana
+ * sobre o amarelo dá 9,97:1 nos dois temas — botão cheio tem texto escuro
+ * sempre.
+ *
+ * ### Os três passos, na ordem
+ *
+ * 1. A marca define os acentos do tema claro, com contraste calculado. Sem
+ *    isso os outros dois passos produzem algo ilegível.
+ * 2. Declarar `paletaClara` satisfazendo `TemaCores`. O compilador recusa se
+ *    faltar um token — é para isso que o tipo existe.
+ * 3. Trocar `cores` por uma escolha em execução. **É aqui que o custo mora:**
+ *    as telas chamam `StyleSheet.create` fora do componente, e `StyleSheet`
+ *    não reage a contexto. Cada tela precisará mover os estilos para dentro
+ *    do componente, ou passar a construí-los por função que recebe a paleta.
+ *    Mecânico, mas toca toda tela migrada — hoje são poucas, e é por isso que
+ *    quanto mais cedo se decidir, mais barato sai.
+ *
+ * ### E o `userInterfaceStyle`
+ *
+ * O `app.config.ts` declara `"dark"`. Isso não é preferência: é o aplicativo
+ * dizendo a verdade ao sistema operacional. Com `"automatic"`, o sistema
+ * desenhava `Alert`, teclado e barra de status no tema do aparelho — e num
+ * aparelho em tema claro os diálogos subiam brancos sobre um aplicativo
+ * obsidiana. **Confirmado no aparelho em 31/08/2026.** Quando houver tema
+ * claro de verdade, aí sim `"automatic"` volta a ser a declaração correta.
+ */
 
 /**
  * Tipografia da identidade.

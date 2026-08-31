@@ -47,7 +47,14 @@ const config: ExpoConfig = {
   orientation: "portrait",
   icon: "./assets/images/icon.png",
   scheme: env.scheme,
-  userInterfaceStyle: "automatic",
+  // "dark", não "automatic": a identidade tem um tema só, e este campo diz ao
+  // sistema operacional como ele deve desenhar o que NÃO é do aplicativo —
+  // Alert, teclado, barra de status. Com "automatic" num aparelho em tema
+  // claro, esses diálogos subiam brancos sobre um aplicativo obsidiana.
+  // Confirmado no aparelho em 31/08/2026.
+  // Quando existir uma paleta clara de verdade, "automatic" volta a ser o
+  // valor correto — ver a seção sobre temas em constants/palette.ts.
+  userInterfaceStyle: "dark",
   ios: {
     supportsTablet: true,
     bundleIdentifier: env.iosBundleId,
