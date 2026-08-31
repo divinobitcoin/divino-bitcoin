@@ -15,18 +15,20 @@ function TransactionItem({ transaction }: { transaction: WalletTransaction }) {
 
   return (
     <View style={styles.transactionCard}>
-      <View style={[styles.transactionIcon, incoming ? styles.incomingIcon : styles.outgoingIcon]}>
-        <MaterialIcons name={incoming ? "arrow-downward" : "arrow-upward"} size={20} color={incoming ? cores.sucesso : cores.textoSecundario} />
-      </View>
-      <View style={styles.transactionContent}>
-        <Text numberOfLines={1} style={styles.transactionTitle}>{transaction.memo || transaction.counterparty}</Text>
-        <Text style={styles.transactionMeta}>{formatDateTime(transaction.createdAt)} · {statusLabel}</Text>
-      </View>
-      <View style={styles.amountColumn}>
-        <Text style={[styles.transactionAmount, incoming ? styles.incomingAmount : styles.outgoingAmount]}>
-          {incoming ? "+" : "−"}{formatSats(totalAmount)}
-        </Text>
-        {transaction.feeSats > 0 && <Text style={styles.feeText}>Taxa {transaction.feeSats} sats</Text>}
+      <View style={styles.transactionRow}>
+        <View style={[styles.transactionIcon, incoming ? styles.incomingIcon : styles.outgoingIcon]}>
+          <MaterialIcons name={incoming ? "arrow-downward" : "arrow-upward"} size={20} color={incoming ? cores.sucesso : cores.textoSecundario} />
+        </View>
+        <View style={styles.transactionContent}>
+          <Text numberOfLines={1} style={styles.transactionTitle}>{transaction.memo || transaction.counterparty}</Text>
+          <Text numberOfLines={1} style={styles.transactionMeta}>{formatDateTime(transaction.createdAt)} · {statusLabel}</Text>
+        </View>
+        <View style={styles.amountColumn}>
+          <Text style={[styles.transactionAmount, incoming ? styles.incomingAmount : styles.outgoingAmount]}>
+            {incoming ? "+" : "−"}{formatSats(totalAmount)}
+          </Text>
+          {transaction.feeSats > 0 && <Text style={styles.feeText}>Taxa {transaction.feeSats} sats</Text>}
+        </View>
       </View>
       <Text
         accessibilityRole="button"
@@ -100,6 +102,25 @@ export default function AndroidActivityTab() {
  *    Delta-E, `aviso` significa aviso — e um envio de rotina não é um aviso.
  *    Saída fica em texto neutro; só entrada ganha cor. Mesma decisão da tela
  *    inicial, para as duas telas contarem a mesma história.
+ *
+ * ## O cartão de movimento — correção de layout, anterior a esta migração
+ *
+ * O cartão era uma linha só (`flexDirection: "row"` + `flexWrap: "wrap"`) com
+ * quatro filhos: ícone, conteúdo, valor e o link "VER DETALHES". O
+ * `marginLeft: 48` do link mostra a intenção original — cair numa segunda
+ * linha, alinhado sob o título (36 do ícone + 12 do gap).
+ *
+ * **A quebra nunca acontecia.** `transactionContent` tem `flex: 1`, então ele
+ * encolhe para caber em vez de forçar o wrap. Com o link e o valor ocupando a
+ * linha, o conteúdo era espremido a quase zero: o título sumia em reticências
+ * e a data quebrava letra por letra na vertical.
+ *
+ * O defeito é anterior a esta migração — existia igual no tema claro, e só
+ * apareceu quando alguém finalmente olhou a tela no aparelho. É mais um caso
+ * de que as quatro validações não renderizam pixel.
+ *
+ * A correção torna a intenção explícita em vez de depender do wrap: uma linha
+ * com ícone, conteúdo e valor, e o link numa linha própria abaixo.
  */
 const styles = StyleSheet.create({
   loadingScreen: { alignItems: "center", backgroundColor: cores.fundo, flex: 1, justifyContent: "center" },
@@ -113,7 +134,9 @@ const styles = StyleSheet.create({
   demoBadge: { alignItems: "center", backgroundColor: cores.superficieAlta, borderColor: cores.rede, borderRadius: 12, borderWidth: 1, flexDirection: "row", gap: 8, marginTop: 7, paddingHorizontal: 12, paddingVertical: 10 },
   demoBadgeText: { color: cores.rede, fontSize: 13, fontWeight: "600" },
   countLabel: { color: cores.textoSecundario, fontSize: 13, fontWeight: "700", marginTop: 8 },
-  transactionCard: { alignItems: "center", backgroundColor: cores.superficie, flexDirection: "row", flexWrap: "wrap", gap: 12, padding: 16 },
+  // Coluna, não linha. Ver a nota "O cartão de movimento" no cabeçalho.
+  transactionCard: { backgroundColor: cores.superficie, gap: 4, padding: 16 },
+  transactionRow: { alignItems: "center", flexDirection: "row", gap: 12 },
   separator: { backgroundColor: cores.borda, height: StyleSheet.hairlineWidth, marginLeft: 62 },
   transactionIcon: { alignItems: "center", borderRadius: 18, height: 36, justifyContent: "center", width: 36 },
   incomingIcon: { backgroundColor: cores.sucessoSuperficie },
@@ -126,7 +149,11 @@ const styles = StyleSheet.create({
   incomingAmount: { color: cores.sucesso },
   outgoingAmount: { color: cores.textoPrimario },
   feeText: { color: cores.textoTerciario, fontSize: 10 },
-  detailAction: { color: cores.acaoSecundariaTexto, fontSize: 11, fontWeight: "800", letterSpacing: 0.5, marginLeft: 48, paddingVertical: 4 },
+  // `marginLeft: 48` alinha sob o título: 36 do ícone + 12 do gap da linha.
+  // `alignSelf: "flex-start"` mantém a área de toque na largura do texto, e
+  // `paddingVertical: 12` a leva de ~22 px para ~37 px de altura — antes era
+  // menor que qualquer alvo de toque razoável.
+  detailAction: { alignSelf: "flex-start", color: cores.acaoSecundariaTexto, fontSize: 11, fontWeight: "800", letterSpacing: 0.5, marginLeft: 48, paddingRight: 12, paddingVertical: 12 },
   emptyCard: { alignItems: "center", backgroundColor: cores.superficie, borderColor: cores.borda, borderRadius: 18, borderWidth: 1, gap: 8, padding: 28 },
   emptyIcon: { alignItems: "center", backgroundColor: cores.superficieAlta, borderRadius: 20, height: 40, justifyContent: "center", marginBottom: 3, width: 40 },
   emptyTitle: { color: cores.textoPrimario, fontSize: 16, fontWeight: "700" },
