@@ -3,12 +3,19 @@ import { useRouter } from "expo-router";
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { cores } from "@/constants/palette";
 import { useWallet } from "@/lib/wallet-context";
 import DivinoNativeVaultModule from "@/modules/divino-native-vault/src/DivinoNativeVaultModule";
 import { SIGNET_NETWORK } from "@/shared/bitcoin-network";
 import { LIGHTNING_PROVIDER_PLANS, type LightningProviderKind } from "@/shared/lightning";
 
-const switchTrackColor = { false: "#D1D5DB", true: "#8DC8FF" };
+/**
+ * Trilho ligado usa `bordaAcento` — o dourado translúcido da paleta, que até
+ * aqui não tinha nenhum uso no aplicativo. É exatamente o caso para o qual ele
+ * existe: superfície tingida da família de ação, que não compete com o
+ * polegar cheio em cima dela.
+ */
+const switchTrackColor = { false: cores.borda, true: cores.bordaAcento };
 
 export default function AndroidSettingsTab() {
   const insets = useSafeAreaInsets();
@@ -18,7 +25,7 @@ export default function AndroidSettingsTab() {
   if (!isReady || !state) {
     return (
       <View style={styles.loadingScreen}>
-        <ActivityIndicator color="#F7931A" />
+        <ActivityIndicator color={cores.acaoPrimaria} />
       </View>
     );
   }
@@ -117,7 +124,7 @@ export default function AndroidSettingsTab() {
         </View>
 
         <View style={styles.demoCard}>
-          <MaterialIcons name="science" color="#085EAF" size={22} />
+          <MaterialIcons name="science" color={cores.rede} size={22} />
           <View style={styles.flex}>
             <Text style={styles.demoTitle}>Carteira em demonstração</Text>
             <Text style={styles.demoText}>As informações ficam neste aparelho e não há conexão com saldo Lightning real.</Text>
@@ -135,7 +142,7 @@ export default function AndroidSettingsTab() {
               value={state.settings.hideBalance}
               onValueChange={(value) => void setHideBalance(value)}
               trackColor={switchTrackColor}
-              thumbColor={state.settings.hideBalance ? "#0A84FF" : "#F9FAFB"}
+              thumbColor={state.settings.hideBalance ? cores.acaoPrimaria : cores.textoTerciario}
             />
           </View>
         </View>
@@ -151,13 +158,13 @@ export default function AndroidSettingsTab() {
               value={state.settings.biometricsEnabled}
               onValueChange={(value) => void setBiometricsEnabled(value)}
               trackColor={switchTrackColor}
-              thumbColor={state.settings.biometricsEnabled ? "#0A84FF" : "#F9FAFB"}
+              thumbColor={state.settings.biometricsEnabled ? cores.acaoPrimaria : cores.textoTerciario}
             />
           </View>
           <View style={styles.divider} />
           <View style={styles.actionRow}>
             <View style={styles.iconBox}>
-              <MaterialIcons name="fingerprint" size={21} color="#0A84FF" />
+              <MaterialIcons name="fingerprint" size={21} color={cores.acaoSecundariaTexto} />
             </View>
             <View style={styles.flex}>
               <Text style={styles.settingTitle}>Testar desbloqueio</Text>
@@ -171,7 +178,7 @@ export default function AndroidSettingsTab() {
         <View style={styles.group}>
           <View style={styles.actionRow}>
             <View style={[styles.iconBox, styles.vaultIcon]}>
-              <MaterialIcons name="shield" size={21} color="#0E6E4B" />
+              <MaterialIcons name="shield" size={21} color={cores.sucesso} />
             </View>
             <View style={styles.flex}>
               <Text style={styles.settingTitle}>Diagnóstico do cofre nativo</Text>
@@ -185,7 +192,7 @@ export default function AndroidSettingsTab() {
         <View style={styles.group}>
           <View style={styles.actionRow}>
             <View style={styles.iconBox}>
-              <MaterialIcons name="travel-explore" size={21} color="#0A84FF" />
+              <MaterialIcons name="travel-explore" size={21} color={cores.acaoSecundariaTexto} />
             </View>
             <View style={styles.flex}>
               <Text style={styles.settingTitle}>Observar endereço {SIGNET_NETWORK.label}</Text>
@@ -198,7 +205,7 @@ export default function AndroidSettingsTab() {
           </View>
           <View style={styles.actionRow}>
             <View style={styles.iconBox}>
-              <MaterialIcons name="send" size={21} color="#0A84FF" />
+              <MaterialIcons name="send" size={21} color={cores.acaoSecundariaTexto} />
             </View>
             <View style={styles.flex}>
               <Text style={styles.settingTitle}>Enviar em {SIGNET_NETWORK.label}</Text>
@@ -215,7 +222,7 @@ export default function AndroidSettingsTab() {
         <View style={styles.group}>
           <View style={styles.actionRow}>
             <View style={[styles.iconBox, styles.warningIcon]}>
-              <MaterialIcons name="bolt" size={20} color="#B85A00" />
+              <MaterialIcons name="bolt" size={20} color={cores.aviso} />
             </View>
             <View style={styles.flex}>
               <Text style={styles.settingTitle}>{connectionTitle}</Text>
@@ -262,7 +269,7 @@ function ProviderOption({
   return (
     <View style={styles.actionRow}>
       <View style={styles.iconBox}>
-        <MaterialIcons name={icon} size={21} color="#0A84FF" />
+        <MaterialIcons name={icon} size={21} color={cores.acaoSecundariaTexto} />
       </View>
       <View style={styles.flex}>
         <Text style={styles.settingTitle}>{title}</Text>
@@ -277,26 +284,30 @@ function ProviderOption({
 
 const styles = StyleSheet.create({
   actionRow: { alignItems: "flex-start", flexDirection: "row", gap: 12, minHeight: 84, paddingHorizontal: 16, paddingVertical: 15 },
-  connectionNote: { color: "#667085", fontSize: 11, lineHeight: 16, marginHorizontal: 4, marginTop: -4 },
+  connectionNote: { color: cores.textoTerciario, fontSize: 11, lineHeight: 16, marginHorizontal: 4, marginTop: -4 },
   content: { gap: 14, paddingHorizontal: 20 },
-  demoBadge: { alignSelf: "flex-start", backgroundColor: "#E6F4FE", borderRadius: 8, color: "#0A84FF", fontSize: 10, fontWeight: "800", letterSpacing: 0.5, marginTop: 8, overflow: "hidden", paddingHorizontal: 7, paddingVertical: 4 },
-  demoCard: { alignItems: "flex-start", backgroundColor: "#E6F4FE", borderRadius: 16, flexDirection: "row", gap: 12, padding: 15 },
-  demoText: { color: "#286A9E", fontSize: 12, lineHeight: 17 },
-  demoTitle: { color: "#085EAF", fontSize: 14, fontWeight: "800", marginBottom: 4 },
-  divider: { backgroundColor: "#E7EAF0", height: StyleSheet.hairlineWidth, marginLeft: 16 },
-  eyebrow: { color: "#F7931A", fontSize: 11, fontWeight: "800", letterSpacing: 1.1 },
+  demoBadge: { alignSelf: "flex-start", backgroundColor: cores.superficieAlta, borderColor: cores.rede, borderRadius: 8, borderWidth: 1, color: cores.rede, fontSize: 10, fontWeight: "800", letterSpacing: 0.5, marginTop: 8, overflow: "hidden", paddingHorizontal: 7, paddingVertical: 4 },
+  demoCard: { alignItems: "flex-start", backgroundColor: cores.superficie, borderColor: cores.rede, borderRadius: 16, borderWidth: 1, flexDirection: "row", gap: 12, padding: 15 },
+  demoText: { color: cores.textoSecundario, fontSize: 12, lineHeight: 17 },
+  demoTitle: { color: cores.rede, fontSize: 14, fontWeight: "800", marginBottom: 4 },
+  divider: { backgroundColor: cores.borda, height: StyleSheet.hairlineWidth, marginLeft: 16 },
+  // Marca, nao acao — mesmo criterio das outras telas migradas.
+  eyebrow: { color: cores.acento, fontSize: 11, fontWeight: "800", letterSpacing: 1.1 },
   flex: { flex: 1 },
-  group: { backgroundColor: "#FFFFFF", borderColor: "#E7EAF0", borderRadius: 17, borderWidth: 1, overflow: "hidden" },
+  group: { backgroundColor: cores.superficie, borderColor: cores.borda, borderRadius: 17, borderWidth: 1, overflow: "hidden" },
   header: { gap: 4, marginBottom: 6, marginTop: 4 },
-  iconBox: { alignItems: "center", backgroundColor: "#E6F4FE", borderRadius: 14, height: 35, justifyContent: "center", marginTop: 2, width: 35 },
-  loadingScreen: { alignItems: "center", backgroundColor: "#F7F9FC", flex: 1, justifyContent: "center" },
-  screen: { backgroundColor: "#F7F9FC", flex: 1 },
-  sectionLabel: { color: "#667085", fontSize: 11, fontWeight: "800", letterSpacing: 0.9, marginLeft: 4, marginTop: 12 },
-  settingDescription: { color: "#667085", fontSize: 12, lineHeight: 17, marginTop: 4 },
+  iconBox: { alignItems: "center", backgroundColor: cores.superficieAlta, borderRadius: 14, height: 35, justifyContent: "center", marginTop: 2, width: 35 },
+  loadingScreen: { alignItems: "center", backgroundColor: cores.fundo, flex: 1, justifyContent: "center" },
+  screen: { backgroundColor: cores.fundo, flex: 1 },
+  sectionLabel: { color: cores.textoSecundario, fontSize: 11, fontWeight: "800", letterSpacing: 0.9, marginLeft: 4, marginTop: 12 },
+  settingDescription: { color: cores.textoSecundario, fontSize: 12, lineHeight: 17, marginTop: 4 },
   settingRow: { alignItems: "center", flexDirection: "row", gap: 12, minHeight: 76, paddingHorizontal: 16 },
-  settingTitle: { color: "#1D2939", fontSize: 15, fontWeight: "600" },
-  textAction: { color: "#0A84FF", fontSize: 11, fontWeight: "800", letterSpacing: 0.25, marginTop: 10, paddingVertical: 4 },
-  title: { color: "#101828", fontSize: 29, fontWeight: "700", letterSpacing: -0.6 },
-  vaultIcon: { backgroundColor: "#E7F7EF" },
-  warningIcon: { backgroundColor: "#FFF3E5" },
+  settingTitle: { color: cores.textoPrimario, fontSize: 15, fontWeight: "600" },
+  // `paddingVertical: 12` em vez de 4: a area de toque era ~21px de altura,
+  // menor que qualquer alvo razoavel. Mesma correcao feita no link da aba
+  // Atividade, pelo mesmo motivo.
+  textAction: { alignSelf: "flex-start", color: cores.acaoSecundariaTexto, fontSize: 11, fontWeight: "800", letterSpacing: 0.25, marginTop: 6, paddingRight: 12, paddingVertical: 12 },
+  title: { color: cores.textoPrimario, fontSize: 29, fontWeight: "700", letterSpacing: -0.6 },
+  vaultIcon: { backgroundColor: cores.sucessoSuperficie },
+  warningIcon: { backgroundColor: cores.avisoSuperficie },
 });
