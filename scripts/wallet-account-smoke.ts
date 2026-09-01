@@ -46,10 +46,6 @@
  *   DIVINO_LAB_ESPLORA         https://mempool.space/signet/api
  */
 
-import { hex } from "@scure/base";
-import { HDKey } from "@scure/bip32";
-import * as btc from "@scure/btc-signer";
-
 import {
   ensureWatchOnlyWallet,
   getWatchOnlyBalanceSummary,
@@ -59,26 +55,7 @@ import {
 } from "../shared/bitcoin-core-wallet-client";
 import { fetchAddressUtxos, sumUtxoValueSats, type EsploraConfig } from "../shared/esplora-client";
 import { resolveBitcoinCoreRpcCredentials } from "./bitcoin-core-rpc-env";
-
-const ACCOUNT_PATH = "m/84'/1'/0'";
-
-/**
- * Bytes de versão da família testnet, à qual a Signet pertence.
- *
- * **Achado real, 31/08/2026.** O `@scure/bip32` serializa a chave estendida
- * com os bytes de mainnet por padrão, produzindo `xpub`. O Bitcoin Core valida
- * esses bytes contra a cadeia em que está rodando e recusa:
- *
- *     wpkh(): key 'xpub6CsFd1KN92...' is not valid (código -5)
- *
- * O caminho de derivação já estava certo — `m/84'/1'/0'`, coin type 1 é
- * testnet. Era só a serialização.
- *
- * Verificado: trocar a versão **não muda endereço nenhum**. Os bytes de versão
- * são serialização pura; a derivação de chave é a mesma. Uma seed já usada
- * continua controlando exatamente os mesmos endereços.
- */
-const VERSOES_TESTNET = { private: 0x04358394, public: 0x043587cf };
+import { ACCOUNT_PATH, deriveLabAccount } from "./lab-account-derivation";
 
 function fail(message: string): never {
   console.error(`\nERRO: ${message}\n`);
@@ -93,55 +70,7 @@ function readSeedFromEnv(): string {
         "  Gere uma com: npx tsx scripts/lab-signet-flow.ts new-seed",
     );
   }
-  if (!/^[0-9a-fA-F]+$/.test(seed) || seed.length % 2 !== 0) {
-    fail("DIVINO_LAB_SEED precisa ser hexadecimal de comprimento par.");
-  }
-  return seed.toLowerCase();
-}
-
-/**
- * Deriva o xpub da CONTA e os endereços de cada ramo.
- *
- * O xpub é material público: não permite gastar, só observar. É exatamente o
- * que se entrega ao nó. A seed morre nesta função — `wipePrivateData` em
- * todos os nós intermediários.
- */
-function derivarConta(seedHex: string, rangeEnd: number) {
-  const root = HDKey.fromMasterSeed(hex.decode(seedHex), VERSOES_TESTNET);
-  try {
-    const conta = root.derive(ACCOUNT_PATH);
-    try {
-      const xpub = conta.publicExtendedKey;
-      if (!xpub) fail(`Derivação em ${ACCOUNT_PATH} não produziu chave estendida pública.`);
-      if (!xpub.startsWith("tpub")) {
-        fail(
-          `A chave estendida saiu como "${xpub.slice(0, 4)}", não "tpub".\n` +
-            "  O Bitcoin Core em Signet recusa chave serializada como mainnet.\n" +
-            "  Isso indica que VERSOES_TESTNET não foi aplicada na derivação.",
-        );
-      }
-
-      const enderecos: { recebimento: string[]; troco: string[] } = { recebimento: [], troco: [] };
-      for (const [ramo, rotulo] of [[0, "recebimento"], [1, "troco"]] as const) {
-        for (let i = 0; i <= rangeEnd; i += 1) {
-          const filho = conta.deriveChild(ramo).deriveChild(i);
-          try {
-            if (!filho.publicKey) fail(`Sem chave pública em ${ACCOUNT_PATH}/${ramo}/${i}.`);
-            const address = btc.p2wpkh(filho.publicKey, btc.TEST_NETWORK).address;
-            if (!address) fail(`Sem endereço em ${ACCOUNT_PATH}/${ramo}/${i}.`);
-            enderecos[rotulo].push(address);
-          } finally {
-            filho.wipePrivateData();
-          }
-        }
-      }
-      return { xpub, enderecos };
-    } finally {
-      conta.wipePrivateData();
-    }
-  } finally {
-    root.wipePrivateData();
-  }
+  return seed;
 }
 
 async function main() {
@@ -151,7 +80,17 @@ async function main() {
   const rangeEnd = Number(process.env.DIVINO_CORE_RANGE ?? 9);
   if (!Number.isInteger(rangeEnd) || rangeEnd < 0) fail("DIVINO_CORE_RANGE precisa ser inteiro >= 0.");
 
-  const { xpub, enderecos } = derivarConta(seedHex, rangeEnd);
+  // A derivação mora em ./lab-account-derivation, compartilhada com
+  // scripts/recovery-kit.ts. Os dois PRECISAM derivar a mesma conta: um kit
+  // que descreve conta diferente da que tem o dinheiro falha em silêncio, no
+  // dia da recuperação.
+  let conta;
+  try {
+    conta = deriveLabAccount(seedHex, rangeEnd);
+  } catch (error) {
+    fail(error instanceof Error ? error.message : String(error));
+  }
+  const { accountXpub: xpub, enderecos } = conta;
   console.log(`Conta:  ${ACCOUNT_PATH}`);
   console.log(`xpub:   ${xpub.slice(0, 20)}...${xpub.slice(-10)}  (público; não permite gastar)`);
   console.log(`Faixa:  0..${rangeEnd} em cada ramo — ${enderecos.recebimento.length + enderecos.troco.length} endereços`);
