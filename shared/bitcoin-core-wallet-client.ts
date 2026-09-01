@@ -120,6 +120,22 @@ export type WatchOnlyBalanceSummary = {
   immatureSats: number;
 };
 
+export type DescriptorInfo = {
+  /** Descriptor normalizado pelo próprio nó, sem o checksum. */
+  descriptor: string;
+  /** Checksum de 8 caracteres. O Core o EXIGE em `importdescriptors`. */
+  checksum: string;
+  /**
+   * `true` se o descriptor carrega material capaz de gastar.
+   *
+   * Quem chama decide o que fazer com isso — este módulo não presume. Mas o
+   * campo nunca recebe valor padrão: se o nó não devolver um booleano, a
+   * função lança. Assumir `false` num campo ausente seria exatamente o erro
+   * que o I-2 não perdoa.
+   */
+  hasPrivateKeys: boolean;
+};
+
 type FetchLike = typeof fetch;
 
 class BitcoinCoreRpcError extends Error {
@@ -184,6 +200,57 @@ async function rpcCall<T>(
 function walletUrl(config: BitcoinCoreWalletConfig): string {
   const base = config.url.replace(/\/+$/, "");
   return `${base}/wallet/${encodeURIComponent(config.walletName)}`;
+}
+
+/**
+ * Pergunta ao nó o checksum e a natureza de um descriptor.
+ *
+ * `getdescriptorinfo` é RPC de NÓ, não de wallet: não exige wallet carregada,
+ * e por isso esta função recebe `BitcoinCoreRpcConfig` e fala com a URL base.
+ * Isso importa para quem só quer validar um descriptor — gerar um Recovery
+ * Kit, por exemplo — sem criar wallet nenhuma no nó de ninguém.
+ *
+ * **Por que existe como função exportada.** Esta chamada já era feita, inline,
+ * dentro de `importWatchOnlyDescriptors`. Duplicá-la num script significaria
+ * duplicar também o tratamento do HTTP 500 do Core e a validação de entrada
+ * remota — dois lugares para acertar a mesma coisa, que é como um deles fica
+ * para trás. `importWatchOnlyDescriptors` agora usa esta função.
+ *
+ * Entrada remota é não confiável (`WF-F12`): checksum precisa ter a forma que
+ * o Core produz, e `hasprivatekeys` precisa ser booleano de verdade.
+ */
+export async function getDescriptorInfo(
+  config: BitcoinCoreRpcConfig,
+  descriptor: string,
+  fetchImpl: FetchLike = fetch,
+): Promise<DescriptorInfo> {
+  const base = config.url.replace(/\/+$/, "");
+
+  const raw = await rpcCall<{
+    descriptor?: unknown;
+    checksum?: unknown;
+    hasprivatekeys?: unknown;
+  }>(base, config, "getdescriptorinfo", [descriptor], fetchImpl);
+
+  if (typeof raw?.checksum !== "string" || !/^[a-z0-9]{8}$/.test(raw.checksum)) {
+    throw new Error(
+      `getdescriptorinfo devolveu checksum inesperado: ${JSON.stringify(raw?.checksum)}. ` +
+        "O Core produz exatamente 8 caracteres minúsculos.",
+    );
+  }
+
+  if (typeof raw.hasprivatekeys !== "boolean") {
+    throw new Error(
+      `getdescriptorinfo não disse se o descriptor tem chave privada ` +
+        `(hasprivatekeys=${JSON.stringify(raw.hasprivatekeys)}). Sem essa resposta não há decisão segura a tomar.`,
+    );
+  }
+
+  return {
+    descriptor: typeof raw.descriptor === "string" ? raw.descriptor : descriptor,
+    checksum: raw.checksum,
+    hasPrivateKeys: raw.hasprivatekeys,
+  };
 }
 
 /**
@@ -326,25 +393,13 @@ export async function importWatchOnlyDescriptors(
   }
 
   for (const branch of branches) {
-    const info = await rpcCall<{ checksum?: string; hasprivatekeys?: boolean }>(
-      walletUrl(config),
-      config,
-      "getdescriptorinfo",
-      [branch.desc],
-      fetchImpl,
-    );
+    const info = await getDescriptorInfo(config, branch.desc, fetchImpl);
 
-    if (info.hasprivatekeys !== false) {
+    if (info.hasPrivateKeys) {
       throw new Error(
         `O descriptor "${branch.internal ? "troco" : "recebimento"}" tem chave privada ` +
-          `(hasprivatekeys=${info.hasprivatekeys}). Recusando importar. Este módulo só aceita ` +
+          `(hasprivatekeys=true). Recusando importar. Este módulo só aceita ` +
           `descriptors públicos.`,
-      );
-    }
-
-    if (!info.checksum) {
-      throw new Error(
-        `getdescriptorinfo não devolveu checksum para o descriptor de ${branch.internal ? "troco" : "recebimento"}.`,
       );
     }
 

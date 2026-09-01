@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   broadcastRawTransactionViaCoreRpc,
   ensureWatchOnlyWallet,
+  getDescriptorInfo,
   getWatchOnlyBalanceSummary,
   importWatchOnlyAddress,
   importWatchOnlyDescriptors,
@@ -49,6 +50,79 @@ function jsonRpcRouter(handlers: Record<string, (params: unknown[]) => unknown>)
 class ErrorResult {
   constructor(public error: { code: number; message: string }) {}
 }
+
+describe("getDescriptorInfo", () => {
+  const DESC = "wpkh([729c0d85/84h/1h/0h]tpubDDTd/0/*)";
+
+  it("devolve checksum e a natureza do descriptor", async () => {
+    const fetchImpl = jsonRpcRouter({
+      getdescriptorinfo: (params) => ({
+        descriptor: params[0],
+        checksum: "abcd1234",
+        hasprivatekeys: false,
+      }),
+    });
+
+    const info = await getDescriptorInfo(CONFIG, DESC, fetchImpl);
+
+    expect(info).toEqual({ descriptor: DESC, checksum: "abcd1234", hasPrivateKeys: false });
+  });
+
+  it("fala com a URL do NÓ, não com a da wallet — getdescriptorinfo não exige wallet carregada", async () => {
+    const urls: string[] = [];
+    const fetchImpl = vi.fn(async (url: string) => {
+      urls.push(url);
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ result: { checksum: "abcd1234", hasprivatekeys: false } }),
+      };
+    }) as unknown as typeof fetch;
+
+    await getDescriptorInfo(CONFIG, DESC, fetchImpl);
+
+    expect(urls).toEqual(["http://127.0.0.1:38332"]);
+  });
+
+  it("não engole hasprivatekeys=true — quem chama decide, mas precisa saber", async () => {
+    const fetchImpl = jsonRpcRouter({
+      getdescriptorinfo: () => ({ checksum: "abcd1234", hasprivatekeys: true }),
+    });
+
+    await expect(getDescriptorInfo(CONFIG, DESC, fetchImpl)).resolves.toMatchObject({
+      hasPrivateKeys: true,
+    });
+  });
+
+  it("lança quando hasprivatekeys vem ausente, em vez de assumir false", async () => {
+    const fetchImpl = jsonRpcRouter({
+      getdescriptorinfo: () => ({ checksum: "abcd1234" }),
+    });
+
+    await expect(getDescriptorInfo(CONFIG, DESC, fetchImpl)).rejects.toThrow(
+      /não disse se o descriptor tem chave privada/,
+    );
+  });
+
+  it("recusa checksum com forma inesperada — entrada remota é não confiável (WF-F12)", async () => {
+    for (const checksum of ["", "abc", "ABCD1234", "abcd12345", null, 42]) {
+      const fetchImpl = jsonRpcRouter({
+        getdescriptorinfo: () => ({ checksum, hasprivatekeys: false }),
+      });
+
+      await expect(getDescriptorInfo(CONFIG, DESC, fetchImpl)).rejects.toThrow(/checksum inesperado/);
+    }
+  });
+
+  it("propaga o erro do nó com a mensagem real, mesmo vindo em HTTP 500", async () => {
+    const fetchImpl = jsonRpcRouter({
+      getdescriptorinfo: () =>
+        new ErrorResult({ code: -5, message: "wpkh(): key 'xpub...' is not valid" }),
+    });
+
+    await expect(getDescriptorInfo(CONFIG, DESC, fetchImpl)).rejects.toThrow(/is not valid/);
+  });
+});
 
 describe("ensureWatchOnlyWallet", () => {
   it("cria a wallet e confirma private_keys_enabled=false", async () => {
