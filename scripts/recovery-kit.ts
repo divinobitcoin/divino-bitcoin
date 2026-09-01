@@ -187,18 +187,27 @@ async function main() {
   }
 
   console.log("COMO RECUPERAR SEM NADA DA DIVINO");
+  console.log("  (rótulos conferidos na documentação do Sparrow em 01/09/2026;");
+  console.log("   interface muda, então procure a opção pelo sentido, não pelo texto exato)");
   console.log();
-  console.log("  Sparrow (observação):");
+  console.log("  Sparrow — rede e servidor, antes de tudo:");
+  console.log("    inicie com `-n signet`, ou Tools > Restart In > Signet.");
+  console.log("    Preferences > Server > Bitcoin Core: em localhost ele lê sozinho o");
+  console.log("    cookie do datadir. Test Connection antes de seguir.");
+  console.log();
+  console.log("  Sparrow — observação (é este o teste do INTEROP-01):");
   console.log("    File > New Wallet > nome > Policy Type: Single Signature,");
-  console.log("    Script Type: Native SegWit (P2WPKH) > Keystore: Airgapped/xPub >");
-  console.log("    cole a chave estendida pública e a fingerprint acima, com o");
-  console.log("    derivation path m/84'/1'/0'. Server: Signet.");
+  console.log("    Script Type: Native SegWit (P2WPKH) >");
+  console.log("    Keystore: \"xPub / Watch Only Wallet\" > cole a chave estendida");
+  console.log("    pública, a fingerprint da mestra e o derivation path acima.");
   console.log();
   if (comChavePrivada) {
-    console.log("  Sparrow (recuperação completa, com poder de gasto):");
-    console.log("    File > New Wallet > Keystore: Imported Software Wallet >");
-    console.log("    Master Private Key (tprv) > cole a chave privada estendida acima.");
-    console.log("    Confira que o primeiro endereço bate com o listado aqui.");
+    console.log("  Recuperação COM poder de gasto:");
+    console.log("    NÃO confirmado que o Sparrow importe tprv. A importação de software");
+    console.log("    wallet dele oferece mnemonic BIP-39 ou seed do Electrum; o pedido de");
+    console.log("    importar chave estendida é a issue #58, fechada sem que a");
+    console.log("    documentação registre a funcionalidade. Verificar antes de tentar.");
+    console.log("    Caminho que aceita chave estendida: Electrum em modo testnet.");
     console.log();
   }
   console.log("  Bitcoin Core (segunda opinião pelo próprio nó):");
