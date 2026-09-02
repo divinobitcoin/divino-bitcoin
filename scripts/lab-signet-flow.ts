@@ -19,9 +19,18 @@
  * ## A seed
  *
  * Gerada aleatoriamente por `new-seed` e passada de volta por variável de
- * ambiente. **Nada é escrito em disco.** A seed vive no histórico do seu
- * terminal, que é exatamente onde uma seed descartável deve viver — e onde uma
- * seed real jamais deveria.
+ * ambiente. **Nada é escrito em disco** — protege contra vazamento, e é onde
+ * uma seed descartável deve viver, nunca uma real.
+ *
+ * A versão anterior deste parágrafo dizia que "a seed vive no histórico do seu
+ * terminal". **Isso é falso no caso mais comum**, e a diferença custou uma
+ * conta em 01/09 (`LAB-SEED-VOLATIL-001`): quem gera dentro de `$( )` nunca
+ * põe o valor no histórico — só o comando que o produz, e ele produz outro a
+ * cada execução. Sem cópia manual, fechar o terminal apaga a conta e o que
+ * estiver nela.
+ *
+ * Por isso `new-seed` agora manda gravar o Recovery Kit **antes** de a conta
+ * receber qualquer moeda. Ver `scripts/recovery-kit.ts`.
  *
  * Uso:
  *
@@ -158,8 +167,27 @@ function formatSats(sats: number): string {
 // ---------------------------------------------------------------------------
 
 function commandNewSeed(): void {
-  // 32 bytes de entropia do CSPRNG do sistema. Descartável por construção:
-  // ninguém a anota, ninguém a guarda, e ela morre quando o terminal fechar.
+  // 32 bytes de entropia do CSPRNG do sistema.
+  //
+  // **LAB-SEED-VOLATIL-001, 01/09/2026.** O comentário que estava aqui dizia
+  // que a seed é "descartável por construção: ninguém a anota, ninguém a
+  // guarda, e ela morre quando o terminal fechar" — como se isso fosse só
+  // qualidade. É metade da verdade, e a metade que faltava custou uma conta.
+  //
+  // Não tocar o disco protege contra vazamento. A consequência que ninguém
+  // tinha escrito: o valor também **não entra no histórico** quando gerado
+  // dentro de `$( )`, e `randomBytes` devolve outro a cada execução — rodar o
+  // mesmo comando de novo não recupera nada. Fechados os terminais, a conta
+  // deixa de existir, junto com qualquer fundo que estivesse nela.
+  //
+  // Aconteceu: 10.000 sat de Signet ficaram permanentemente inacessíveis.
+  // Custo econômico zero, porque é moeda de faucet. Mas foi perda de fundos
+  // **sem ataque nenhum** — sem invasor, sem defeito de código, sem chave
+  // vazada. Uma janela de terminal fechou.
+  //
+  // Por isso o comando avisa antes, em vez de entregar a seed e ficar calado.
+  // Perder é tão definitivo quanto ser roubado; a diferença é que ninguém
+  // escreve tutorial sobre a primeira.
   const seedHex = hex.encode(randomBytes(32));
 
   console.log(AVISO);
@@ -169,7 +197,31 @@ function commandNewSeed(): void {
   console.log(`  ${addressFor(seedHex, RECEIVE_PATH)}\n`);
   console.log("Exporte para os próximos comandos:\n");
   console.log(`  export DIVINO_LAB_SEED=${seedHex}\n`);
-  console.log("Depois peça moeda de Signet num faucet e cole esse endereço.\n");
+
+  console.log("┌───────────────────────────────────────────────────────────────────────┐");
+  console.log("│  ESTA SEED SÓ EXISTE NESTA TELA                                       │");
+  console.log("│                                                                       │");
+  console.log("│  Ela não foi gravada em disco — de propósito. A consequência é que    │");
+  console.log("│  fechar este terminal sem copiá-la destrói a conta para sempre,       │");
+  console.log("│  junto com qualquer fundo nela. Rodar new-seed de novo gera OUTRA     │");
+  console.log("│  seed; não recupera esta.                                             │");
+  console.log("│                                                                       │");
+  console.log("│  ANTES de pedir faucet, gere e guarde o Recovery Kit:                 │");
+  console.log("│                                                                       │");
+  console.log("│    export DIVINO_LAB_SEED=<a seed impressa acima>                     │");
+  console.log("│    export DIVINO_KIT_BIRTHDAY=$(date +%F)                             │");
+  console.log("│    npx tsx scripts/recovery-kit.ts --com-chave-privada \\              │");
+  console.log("│      > ~/recovery-kit-lab-signet.txt                                  │");
+  console.log("│    chmod 600 ~/recovery-kit-lab-signet.txt                            │");
+  console.log("│                                                                       │");
+  console.log("│  Fora do repositório de propósito: dentro dele, um `git add .`        │");
+  console.log("│  distraído publicaria a chave privada no GitHub, para sempre.         │");
+  console.log("│                                                                       │");
+  console.log("│  LAB-SEED-VOLATIL-001                                                 │");
+  console.log("└───────────────────────────────────────────────────────────────────────┘\n");
+
+  console.log("Só depois de guardar o kit, peça moeda de Signet num faucet");
+  console.log("e cole o endereço de recebimento acima.\n");
 }
 
 function commandAddress(): void {
