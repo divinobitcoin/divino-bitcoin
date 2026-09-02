@@ -127,18 +127,76 @@ async function main() {
   console.log("OK. Os dois ramos foram aceitos e escaneados.\n");
 
   console.log("--- Passo 3: ler pelo nó ---");
+
+  /**
+   * Endereços desta conta, para filtrar o que o nó devolve.
+   *
+   * **SMOKE-MULTICONTA-001, 02/09/2026.** `listunspent` responde pela WALLET
+   * INTEIRA do Core, não pela conta. Basta uma segunda seed de laboratório
+   * usar o mesmo nome de wallet para os UTXOs das duas contas aparecerem
+   * juntos — e comparar isso contra o Esplora, que é consultado só pelos
+   * endereços DESTA conta, declara divergência onde não há.
+   *
+   * Aconteceu: a conta perdida em `LAB-SEED-VOLATIL-001` continuou dentro de
+   * `divino-watch-only-conta`, e a primeira execução com a conta nova somou as
+   * duas. O nó reportou 10.000 confirmados que o Esplora não via, porque eram
+   * de outra conta.
+   */
+  const enderecosDaConta = new Set([...enderecos.recebimento, ...enderecos.troco]);
+
   const saldoNo = await getWatchOnlyBalanceSummary(config);
-  const utxosNo = await listWatchOnlyUtxos(config);
-  // `listunspent` devolve confirmados E não confirmados. Separar aqui é
-  // obrigatório: comparar a lista inteira do nó contra só os confirmados do
-  // Esplora é comparar coisas diferentes, e foi assim que a primeira versão
-  // deste script declarou divergência onde as duas fontes concordavam.
+  const utxosNoBrutos = await listWatchOnlyUtxos(config);
+  const utxosNo = utxosNoBrutos.filter((u) => enderecosDaConta.has(u.address));
+  const utxosForaDaConta = utxosNoBrutos.length - utxosNo.length;
+
+  /**
+   * Os valores saem do próprio `listunspent`, NÃO de `getbalances`.
+   *
+   * **SMOKE-TRUSTED-001, 02/09/2026.** `getbalances.mine.trusted` não quer
+   * dizer "confirmado". Quer dizer "não confirmado, mas eu confio" — e o Core
+   * confia no troco ainda não confirmado de uma transação cujas entradas a
+   * própria wallet conhece por inteiro, porque ninguém de fora pode
+   * gastá-las duas vezes.
+   *
+   * A versão anterior tirava os VALORES de `getbalances` e as CONTAGENS de
+   * `listunspent`: duas réguas na mesma comparação. Enquanto todo o dinheiro
+   * vinha de faucet — de terceiro — as duas coincidiam por acidente. Na
+   * primeira transação da conta PARA SI MESMA, o troco não confirmado entrou
+   * como `trusted` no nó e como não confirmado no Esplora, e o veredito deu
+   * falso negativo sobre uma rodada que tinha funcionado.
+   *
+   * `listunspent` traz `confirmations` por UTXO, que é a mesma definição do
+   * Esplora. Somar dali põe os dois lados na mesma língua.
+   */
   const utxosNoConfirmados = utxosNo.filter((u) => u.confirmed);
   const utxosNoPendentes = utxosNo.filter((u) => !u.confirmed);
+  const somaSats = (lista: typeof utxosNo): number =>
+    lista.reduce((total, utxo) => total + utxo.valueSats, 0);
+  const confirmadoNo = somaSats(utxosNoConfirmados);
+  const pendenteNo = somaSats(utxosNoPendentes);
+
   console.log(
-    `Nó — confirmado: ${saldoNo.trustedSats} sat (${utxosNoConfirmados.length} UTXO) | ` +
-      `pendente: ${saldoNo.untrustedPendingSats} sat (${utxosNoPendentes.length} UTXO)`,
+    `Nó — confirmado: ${confirmadoNo} sat (${utxosNoConfirmados.length} UTXO) | ` +
+      `pendente: ${pendenteNo} sat (${utxosNoPendentes.length} UTXO)`,
   );
+
+  if (utxosForaDaConta > 0) {
+    console.log(
+      `  ATENÇÃO: ${utxosForaDaConta} UTXO da wallet "${config.walletName}" ficaram de fora da\n` +
+        "  comparação: estão em endereços que não são desta conta. Isso é correto, mas\n" +
+        "  indica wallet compartilhada entre contas (SMOKE-MULTICONTA-001). Para uma\n" +
+        "  wallet limpa: export DIVINO_CORE_ACCOUNT_WALLET=<outro nome>",
+    );
+  }
+
+  if (saldoNo.trustedSats !== confirmadoNo || saldoNo.untrustedPendingSats !== pendenteNo) {
+    console.log(
+      `  Nota: getbalances diz trusted=${saldoNo.trustedSats} e untrusted_pending=${saldoNo.untrustedPendingSats},\n` +
+        "  diferente dos números acima. Isso é NORMAL e não é erro: 'trusted' inclui\n" +
+        "  troco próprio ainda não confirmado, e pode incluir outras contas da mesma\n" +
+        "  wallet. Ver SMOKE-TRUSTED-001. A comparação usa listunspent, não getbalances.",
+    );
+  }
 
   console.log("\n--- Passo 4: somar os mesmos endereços pelo Esplora, para comparar ---");
   const esplora: EsploraConfig = { baseUrl: process.env.DIVINO_LAB_ESPLORA ?? "https://mempool.space/signet/api" };
@@ -163,17 +221,22 @@ async function main() {
 
   console.log("\n--- Veredito ---");
   const bateConfirmado =
-    saldoNo.trustedSats === confirmadoEsplora && utxosNoConfirmados.length === utxosConfirmadosEsplora;
-  const batePendente = saldoNo.untrustedPendingSats === pendenteEsplora;
+    confirmadoNo === confirmadoEsplora && utxosNoConfirmados.length === utxosConfirmadosEsplora;
+  const batePendente =
+    pendenteNo === pendenteEsplora && utxosNoPendentes.length === utxosPendentesEsplora;
 
   if (!bateConfirmado || !batePendente) {
     console.log("As duas fontes NÃO concordam. Isto é um achado, não um erro do script:");
-    console.log(`  confirmado:  nó ${saldoNo.trustedSats} sat / ${utxosNoConfirmados.length} UTXO` +
+    console.log(`  confirmado:  nó ${confirmadoNo} sat / ${utxosNoConfirmados.length} UTXO` +
       `   vs Esplora ${confirmadoEsplora} sat / ${utxosConfirmadosEsplora} UTXO`);
-    console.log(`  pendente:    nó ${saldoNo.untrustedPendingSats} sat   vs Esplora ${pendenteEsplora} sat`);
+    console.log(`  pendente:    nó ${pendenteNo} sat / ${utxosNoPendentes.length} UTXO` +
+      `   vs Esplora ${pendenteEsplora} sat / ${utxosPendentesEsplora} UTXO`);
     console.log(
-      "  Investigar nesta ordem: janela de rescan (o nó é podado), faixa curta\n" +
-        "  demais, ou propagação — o mempool do seu nó e o do Esplora não são o mesmo.",
+      "  Duas causas já catalogadas foram eliminadas por construção: mistura de\n" +
+        "  contas na mesma wallet (SMOKE-MULTICONTA-001) e 'trusted' tratado como\n" +
+        "  confirmado (SMOKE-TRUSTED-001). Restam: janela de rescan (o nó é podado),\n" +
+        "  faixa curta demais, ou propagação — o mempool do seu nó e o do Esplora\n" +
+        "  não são o mesmo.",
     );
     process.exit(1);
   }
@@ -187,7 +250,7 @@ async function main() {
         "endereços são dela perguntando ao nó do próprio usuário — sem derivar\n" +
         "nada no aplicativo e sem perguntar a servidor de terceiro.",
     );
-  } else if (pendenteEsplora > 0 || saldoNo.untrustedPendingSats > 0) {
+  } else if (pendenteEsplora > 0 || pendenteNo > 0) {
     console.log(
       "\nQUASE: o nó JÁ VIU o pagamento, mas ele ainda está no mempool.\n" +
         "Isso prova que o import foi aceito e que os descriptors estão sendo\n" +
