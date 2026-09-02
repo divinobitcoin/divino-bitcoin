@@ -32,9 +32,28 @@
  * Por isso `new-seed` agora manda gravar o Recovery Kit **antes** de a conta
  * receber qualquer moeda. Ver `scripts/recovery-kit.ts`.
  *
+ * ## Mnemonic é o padrão desde 02/09 (`KIT-MNEMONIC-001`)
+ *
+ * `new-seed` gera **12 palavras BIP-39** e imprime a seed derivada delas. O
+ * modo antigo, entropia hex crua, sobreviveu atrás de `--hex-cru` e serve só
+ * para reproduzir contas antigas.
+ *
+ * A troca de padrão é a correção de um defeito de produto, não uma
+ * conveniência: uma conta sem palavras é irrecuperável em carteira de celular,
+ * e a Divino é uma carteira de celular. Enquanto o caminho fácil produzia
+ * contas assim, todo Recovery Kit do laboratório trazia um asterisco escondido.
+ *
+ * `DIVINO_LAB_SEED` continua sendo **hexadecimal e nada mais**, e a recusa de
+ * qualquer coisa com espaços continua valendo — ela protege contra alguém
+ * colar um mnemonic real numa ferramenta de laboratório. As palavras andam
+ * numa variável própria, `DIVINO_LAB_MNEMONIC`, lida apenas pelo
+ * `recovery-kit.ts`.
+ *
  * Uso:
  *
- *   npx tsx scripts/lab-signet-flow.ts new-seed
+ *   npx tsx scripts/lab-signet-flow.ts new-seed            # 12 palavras
+ *   npx tsx scripts/lab-signet-flow.ts new-seed --24       # 24 palavras
+ *   npx tsx scripts/lab-signet-flow.ts new-seed --hex-cru  # sem palavras
  *   DIVINO_LAB_SEED=<hex> npx tsx scripts/lab-signet-flow.ts address
  *   DIVINO_LAB_SEED=<hex> npx tsx scripts/lab-signet-flow.ts balance
  *   DIVINO_LAB_SEED=<hex> npx tsx scripts/lab-signet-flow.ts send <destino> <sats> [sat/vB]
@@ -82,6 +101,7 @@ import {
   BroadcastRejectedError,
 } from "../shared/transaction-broadcast";
 import { resolveBitcoinCoreRpcCredentials } from "./bitcoin-core-rpc-env";
+import { confirmarQueOMnemonicProduzASeed, gerarMnemonicDeLaboratorio } from "./lab-mnemonic";
 
 /**
  * Endpoint Esplora. Configurável de propósito.
@@ -166,8 +186,28 @@ function formatSats(sats: number): string {
 
 // ---------------------------------------------------------------------------
 
-function commandNewSeed(): void {
-  // 32 bytes de entropia do CSPRNG do sistema.
+function commandNewSeed(args: string[]): void {
+  // **KIT-MNEMONIC-001.** Desde 02/09/2026 o padrão é MNEMONIC BIP-39, e a
+  // entropia hex crua ficou atrás de `--hex-cru`.
+  //
+  // A inversão é deliberada. O padrão é o que decide o resultado: enquanto o
+  // caminho fácil produzia uma conta sem palavras, todo Recovery Kit gerado
+  // no laboratório era irrecuperável num celular — o Zeus pede doze palavras,
+  // e nenhuma carteira móvel importa 128 caracteres de hexadecimal. O
+  // laboratório provava a derivação e os descriptors, mas não provava nada
+  // sobre o formato que o usuário final vai guardar.
+  //
+  // Uma carteira de celular cujo backup só recupera num PC tem um asterisco
+  // escondido na promessa. Este comando deixou de produzi-lo por padrão.
+  const querHexCru = args.includes("--hex-cru");
+  const quer24 = args.includes("--24");
+
+  if (querHexCru && quer24) {
+    fail("--24 só faz sentido com mnemonic. Remova --hex-cru ou remova --24.");
+  }
+
+  const mnemonic = querHexCru ? null : gerarMnemonicDeLaboratorio(quer24 ? 24 : 12);
+
   //
   // **LAB-SEED-VOLATIL-001, 01/09/2026.** O comentário que estava aqui dizia
   // que a seed é "descartável por construção: ninguém a anota, ninguém a
@@ -188,34 +228,71 @@ function commandNewSeed(): void {
   // Por isso o comando avisa antes, em vez de entregar a seed e ficar calado.
   // Perder é tão definitivo quanto ser roubado; a diferença é que ninguém
   // escreve tutorial sobre a primeira.
-  const seedHex = hex.encode(randomBytes(32));
+  const seedHex = mnemonic ? mnemonic.seedHex : hex.encode(randomBytes(32));
+
+  // A verificação de volta, na própria geração. As palavras só são impressas
+  // depois de provarem que derivam a seed que vai ser usada — mesma disciplina
+  // que o Recovery Kit aplica. Aqui é redundante por construção; fica porque
+  // uma redundância que custa microssegundos é barata comparada a um kit que
+  // descreve uma conta e abre outra.
+  if (mnemonic) confirmarQueOMnemonicProduzASeed(mnemonic, seedHex);
 
   console.log(AVISO);
-  console.log("Seed gerada (hex):\n");
+
+  if (mnemonic) {
+    console.log(`Mnemonic BIP-39 gerada — ${mnemonic.quantidade} palavras, lista ${mnemonic.idiomaDaLista}:\n`);
+    const palavras = mnemonic.palavras.split(" ");
+    for (let i = 0; i < palavras.length; i += 4) {
+      console.log(
+        "  " +
+          palavras
+            .slice(i, i + 4)
+            .map((palavra, j) => `${String(i + j + 1).padStart(2)}. ${palavra.padEnd(10)}`)
+            .join(""),
+      );
+    }
+    console.log();
+    console.log("  A ORDEM FAZ PARTE DO SEGREDO. Os números não são enfeite:");
+    console.log("  as mesmas palavras fora de ordem reprovam no checksum, e");
+    console.log("  duas trocadas entre si podem passar e abrir outra carteira.");
+    console.log("  A LISTA TAMBÉM FAZ PARTE DO SEGREDO — anote o idioma junto.");
+    console.log("  Sem passphrase BIP-39 nesta conta.\n");
+  } else {
+    console.log("Modo --hex-cru: entropia bruta, SEM palavras.\n");
+    console.log("  Esta conta não pode ser recuperada em carteira de celular —");
+    console.log("  nenhuma delas importa hexadecimal. Use este modo só para");
+    console.log("  regressão de contas antigas. Ver KIT-MNEMONIC-001.\n");
+  }
+
+  console.log(`Seed (hex, ${seedHex.length / 2} bytes):\n`);
   console.log(`  ${seedHex}\n`);
   console.log("Endereço de recebimento:\n");
   console.log(`  ${addressFor(seedHex, RECEIVE_PATH)}\n`);
-  console.log("Exporte para os próximos comandos:\n");
-  console.log(`  export DIVINO_LAB_SEED=${seedHex}\n`);
+
+  console.log("──────────────────────────────────────────────────────────────────────");
+  console.log("PASSO 1 — exporte (copie o bloco inteiro, ele não pede substituição):");
+  console.log("──────────────────────────────────────────────────────────────────────\n");
+  console.log(`export DIVINO_LAB_SEED=${seedHex}`);
+  if (mnemonic) console.log(`export DIVINO_LAB_MNEMONIC="${mnemonic.palavras}"`);
+  console.log(`export DIVINO_KIT_BIRTHDAY=$(date +%F)\n`);
+
+  console.log("──────────────────────────────────────────────────────────────────────");
+  console.log("PASSO 2 — grave o Recovery Kit ANTES de pedir moeda no faucet:");
+  console.log("──────────────────────────────────────────────────────────────────────\n");
+  console.log("npx tsx scripts/recovery-kit.ts --com-chave-privada \\");
+  console.log("  > ~/recovery-kit-lab-signet.txt && chmod 600 ~/recovery-kit-lab-signet.txt\n");
 
   console.log("┌───────────────────────────────────────────────────────────────────────┐");
-  console.log("│  ESTA SEED SÓ EXISTE NESTA TELA                                       │");
+  console.log("│  ESTE SEGREDO SÓ EXISTE NESTA TELA                                    │");
   console.log("│                                                                       │");
-  console.log("│  Ela não foi gravada em disco — de propósito. A consequência é que    │");
-  console.log("│  fechar este terminal sem copiá-la destrói a conta para sempre,       │");
+  console.log("│  Nada foi gravado em disco — de propósito. A consequência é que       │");
+  console.log("│  fechar este terminal sem copiar destrói a conta para sempre,         │");
   console.log("│  junto com qualquer fundo nela. Rodar new-seed de novo gera OUTRA     │");
-  console.log("│  seed; não recupera esta.                                             │");
+  console.log("│  conta; não recupera esta.                                            │");
   console.log("│                                                                       │");
-  console.log("│  ANTES de pedir faucet, gere e guarde o Recovery Kit:                 │");
-  console.log("│                                                                       │");
-  console.log("│    export DIVINO_LAB_SEED=<a seed impressa acima>                     │");
-  console.log("│    export DIVINO_KIT_BIRTHDAY=$(date +%F)                             │");
-  console.log("│    npx tsx scripts/recovery-kit.ts --com-chave-privada \\              │");
-  console.log("│      > ~/recovery-kit-lab-signet.txt                                  │");
-  console.log("│    chmod 600 ~/recovery-kit-lab-signet.txt                            │");
-  console.log("│                                                                       │");
-  console.log("│  Fora do repositório de propósito: dentro dele, um `git add .`        │");
-  console.log("│  distraído publicaria a chave privada no GitHub, para sempre.         │");
+  console.log("│  O arquivo do kit fica FORA do repositório de propósito: dentro       │");
+  console.log("│  dele, um `git add .` distraído publicaria a chave privada no         │");
+  console.log("│  GitHub, para sempre.                                                 │");
   console.log("│                                                                       │");
   console.log("│  LAB-SEED-VOLATIL-001                                                 │");
   console.log("└───────────────────────────────────────────────────────────────────────┘\n");
@@ -504,7 +581,7 @@ async function main(): Promise<void> {
 
   switch (comando) {
     case "new-seed":
-      return commandNewSeed();
+      return commandNewSeed(args);
     case "address":
       return commandAddress();
     case "balance":
@@ -517,7 +594,9 @@ async function main(): Promise<void> {
       console.log(`
 Ferramenta de laboratório — caminho on-chain na Signet
 
-  new-seed                              gera seed descartável e endereço
+  new-seed                              gera conta descartável a partir de MNEMONIC (12 palavras)
+  new-seed --24                         o mesmo, com 24 palavras
+  new-seed --hex-cru                    entropia bruta, SEM palavras (contas antigas; ver KIT-MNEMONIC-001)
   address                               mostra endereços de recebimento e troco
   balance                               consulta UTXOs do endereço de recebimento
   sign <psbt-base64>                    assina uma PSBT vinda de fora e imprime a assinada
