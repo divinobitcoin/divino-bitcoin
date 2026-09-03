@@ -205,6 +205,19 @@ export default function AndroidSettingsTab() {
           </View>
           <View style={styles.actionRow}>
             <View style={styles.iconBox}>
+              <MaterialIcons name="hub" size={21} color={cores.acaoSecundariaTexto} />
+            </View>
+            <View style={styles.flex}>
+              <Text style={styles.settingTitle}>Saldo pelo meu nó</Text>
+              <Text style={styles.settingDescription}>
+                Lê o saldo da conta perguntando ao Bitcoin Core que roda no seu computador, e a mais ninguém.
+                Pede a chave estendida pública do Recovery Kit — que observa, não gasta.
+              </Text>
+              <Text accessibilityRole="button" onPress={() => router.push("/dev/signet-node-balance")} style={styles.textAction}>ABRIR →</Text>
+            </View>
+          </View>
+          <View style={styles.actionRow}>
+            <View style={styles.iconBox}>
               <MaterialIcons name="send" size={21} color={cores.acaoSecundariaTexto} />
             </View>
             <View style={styles.flex}>

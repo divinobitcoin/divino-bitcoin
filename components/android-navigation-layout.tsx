@@ -35,6 +35,7 @@ export default function AndroidNavigationLayout() {
           <Stack.Screen name="android-transaction-detail" options={{ headerShown: false }} />
           <Stack.Screen name="dev/signet-watch" options={{ title: "Observar endereço Signet", ...OPCOES_LAB }} />
           <Stack.Screen name="dev/signet-psbt" options={{ title: "Enviar em Signet", ...OPCOES_LAB }} />
+          <Stack.Screen name="dev/signet-node-balance" options={{ title: "Saldo pelo meu nó", ...OPCOES_LAB }} />
         </Stack>
       </WalletProvider>
     </SafeAreaProvider>
