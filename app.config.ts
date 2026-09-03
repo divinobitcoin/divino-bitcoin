@@ -161,6 +161,10 @@ const config: ExpoConfig = {
       },
     ],
     "./plugins/with-gradle-8-compatibility.js",
+    // Exceção de texto claro para UM endereço da rede local, só no build de
+    // debug, e só quando DIVINO_LAN_NODE_IP estiver definida. Ver
+    // NODE-TRANSPORT-001 e plugins/with-lan-cleartext-debug.js.
+    "./plugins/with-lan-cleartext-debug.js",
   ],
   experiments: {
     typedRoutes: false,
