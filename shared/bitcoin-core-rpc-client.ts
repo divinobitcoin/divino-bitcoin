@@ -11,6 +11,24 @@
  * quando o app em si passa a sincronizar automaticamente.
  */
 
+import { base64 } from "@scure/base";
+
+/**
+ * Cabeçalho Basic auth sem `Buffer`.
+ *
+ * **`Buffer` é um global do Node.js e NÃO existe no runtime do React Native.**
+ * Este módulo roda nos dois: nos scripts de laboratório e dentro do aplicativo.
+ * Enquanto usava `Buffer`, funcionava em teste e falhava no aparelho com
+ * `Property 'Buffer' doesn't exist` — e as quatro validações passavam, porque
+ * `@types/node` promete ao `tsc` que ele existe.
+ *
+ * Observado no Xiaomi em 04/09/2026, na primeira tentativa de ler saldo pelo nó.
+ * Ver `tests/runtime-sem-buffer.test.ts`, que agora impede a volta.
+ */
+function basicAuth(username: string, password: string): string {
+  return base64.encode(new TextEncoder().encode(`${username}:${password}`));
+}
+
 export type BitcoinCoreRpcConfig = {
   /** Ex: "http://127.0.0.1:38332" — porta padrão do RPC em Signet. */
   url: string;
@@ -38,7 +56,7 @@ export async function scanAddressUtxoSet(
   address: string,
   fetchImpl: FetchLike = fetch,
 ): Promise<AddressUtxoSummary> {
-  const auth = Buffer.from(`${config.username}:${config.password}`).toString("base64");
+  const auth = basicAuth(config.username, config.password);
 
   const response = await fetchImpl(config.url, {
     method: "POST",

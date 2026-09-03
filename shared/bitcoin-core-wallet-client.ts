@@ -59,7 +59,7 @@
  * uma decisão de arquitetura separada e posterior.
  */
 
-import { hex } from "@scure/base";
+import { base64, hex } from "@scure/base";
 import * as btc from "@scure/btc-signer";
 
 import type { BitcoinCoreRpcConfig } from "./bitcoin-core-rpc-client";
@@ -155,7 +155,7 @@ async function rpcCall<T>(
   params: unknown[],
   fetchImpl: FetchLike,
 ): Promise<T> {
-  const auth = Buffer.from(`${config.username}:${config.password}`).toString("base64");
+  const auth = base64.encode(new TextEncoder().encode(`${config.username}:${config.password}`));
 
   const response = await fetchImpl(baseUrl, {
     method: "POST",

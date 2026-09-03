@@ -1,3 +1,4 @@
+import { base64, hex } from "@scure/base";
 import * as btc from "@scure/btc-signer";
 
 /**
@@ -29,9 +30,9 @@ export type ParsedPsbtSummary = {
 
 function decodePsbtBytes(base64OrHex: string): Uint8Array {
   const isHex = /^[0-9a-fA-F]+$/.test(base64OrHex) && base64OrHex.length % 2 === 0;
-  return isHex
-    ? Uint8Array.from(Buffer.from(base64OrHex, "hex"))
-    : Uint8Array.from(Buffer.from(base64OrHex, "base64"));
+  // `Buffer` é global do Node e não existe no React Native. Ver
+  // `tests/runtime-sem-buffer.test.ts`.
+  return isHex ? hex.decode(base64OrHex.toLowerCase()) : base64.decode(base64OrHex);
 }
 
 function getAddressNetwork(network: PsbtNetwork): typeof btc.NETWORK {
