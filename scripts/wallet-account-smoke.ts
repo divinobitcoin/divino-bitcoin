@@ -205,15 +205,49 @@ async function main() {
   let pendenteEsplora = 0;
   let utxosConfirmadosEsplora = 0;
   let utxosPendentesEsplora = 0;
-  for (const address of todos) {
-    const utxos = await fetchAddressUtxos(esplora, address);
-    const confirmados = utxos.filter((u) => u.confirmed);
-    const pendentes = utxos.filter((u) => !u.confirmed);
-    confirmadoEsplora += sumUtxoValueSats(confirmados);
-    pendenteEsplora += sumUtxoValueSats(pendentes);
-    utxosConfirmadosEsplora += confirmados.length;
-    utxosPendentesEsplora += pendentes.length;
+  // `SMOKE-ESPLORA-CRASH-001`, 03/09/2026. A versão anterior deixava a exceção
+  // subir, e o script morria com `TypeError: fetch failed` e um stack trace —
+  // DEPOIS de já ter obtido a resposta do nó do próprio usuário.
+  //
+  // Errado por dois motivos. Primeiro: falha de terceiro é condição normal de
+  // operação, não exceção — serviço público cai, limita requisição e some sem
+  // avisar. Segundo, e pior: a ferramenta jogava fora uma resposta boa, vinda
+  // da fonte que este projeto inteiro existe para privilegiar, porque a fonte
+  // de COMPARAÇÃO não respondeu.
+  //
+  // O `try` envolve o laço inteiro de propósito. Somar parcialmente e comparar
+  // produziria divergência falsa — mesma família do `SMOKE-VERDICT-001`: a
+  // régua errada, não o que era medido.
+  try {
+    for (const address of todos) {
+      const utxos = await fetchAddressUtxos(esplora, address);
+      const confirmados = utxos.filter((u) => u.confirmed);
+      const pendentes = utxos.filter((u) => !u.confirmed);
+      confirmadoEsplora += sumUtxoValueSats(confirmados);
+      pendenteEsplora += sumUtxoValueSats(pendentes);
+      utxosConfirmadosEsplora += confirmados.length;
+      utxosPendentesEsplora += pendentes.length;
+    }
+  } catch (erro) {
+    console.log(`A segunda fonte NÃO respondeu: ${erro instanceof Error ? erro.message : String(erro)}`);
+    console.log(`  Endpoint: ${esplora.baseUrl}`);
+    console.log("\n--- Veredito ---");
+    console.log("SEM VEREDITO. O nó do seu computador respondeu, e o que ele disse está");
+    console.log("acima, íntegro. Faltou a SEGUNDA fonte — e sem duas fontes independentes");
+    console.log("este script não diz PROVADO. Uma fonte sozinha é autoconfirmação.");
+    console.log("\n  Isto NÃO é defeito da sua conta nem do seu nó.");
+    console.log("  Causas comuns: sua conexão, o serviço fora do ar, ou limite de");
+    console.log("  requisição depois de várias rodadas de 20 endereços.");
+    console.log("\n  Conferir se o serviço está no ar:");
+    console.log(`    curl -sS ${esplora.baseUrl}/blocks/tip/height; echo`);
+    console.log("  Usar outro Esplora:  export DIVINO_LAB_ESPLORA=<url>/api");
+    console.log("\n  SMOKE-ESPLORA-CRASH-001");
+    // Código 2, distinto do 1 usado para divergência real entre as fontes. São
+    // dois resultados diferentes, e quem automatizar isto precisa separar
+    // "as fontes discordam" de "faltou uma fonte".
+    process.exit(2);
   }
+
   console.log(
     `Esplora — confirmado: ${confirmadoEsplora} sat (${utxosConfirmadosEsplora} UTXO) | ` +
       `pendente: ${pendenteEsplora} sat (${utxosPendentesEsplora} UTXO)   [${todos.length} endereços consultados]`,
