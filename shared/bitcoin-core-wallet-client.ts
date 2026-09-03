@@ -148,6 +148,71 @@ class BitcoinCoreRpcError extends Error {
   }
 }
 
+/**
+ * Mensagem para HTTP 401 — a credencial recusada pelo nó.
+ *
+ * ## Por que este caso precisa de tratamento próprio
+ *
+ * `RPC-HTTP-STATUS-001` estabeleceu que o Core põe o erro real no corpo
+ * JSON-RPC e devolve HTTP 500. O **401 é a exceção**: ele é gerado antes de
+ * qualquer processamento de RPC, e o corpo vem **vazio**. Não existe mensagem
+ * do nó para repassar. A mensagem genérica de status vira, na tela do usuário,
+ * `falhou com status HTTP 401, sem corpo de erro JSON-RPC legível` — que não
+ * diz o que fazer.
+ *
+ * ## O que esta função acrescenta, e por quê
+ *
+ * A credencial é **digitada num celular**, num campo `secureTextEntry` onde o
+ * usuário não vê o que escreveu. Teclado de Android come caractere — foi
+ * observado pelo proprietário durante uma restauração no Blockstream Green,
+ * 03/09/2026. Sem instrumentação, um caractere faltando e uma senha errada são
+ * indistinguíveis: os dois dão 401 mudo, e a única saída é redigitar no escuro.
+ *
+ * Então a mensagem informa **o que foi enviado**, medido no momento do envio:
+ * o usuário entre aspas angulares (para espaço nas pontas aparecer) e o
+ * **tamanho** da senha.
+ *
+ * ## O que ela não faz, deliberadamente
+ *
+ * **A senha nunca é impressa**, nem parcialmente. O tamanho basta para o
+ * diagnóstico — o usuário compara com o que digitou — e não reconstrói o
+ * segredo. Um caractere revelado reconstruiria, e a tentação de "só a primeira
+ * letra para ajudar" é exatamente como vazamento começa.
+ *
+ * O espaço nas pontas é **denunciado, não removido**. Uma senha de RPC pode
+ * legitimamente terminar em espaço; aparar por conta própria seria adivinhar a
+ * intenção do usuário e falharia em silêncio contra um nó configurado assim —
+ * classe do `WF-F11`, downgrade silencioso.
+ */
+function mensagemDeCredencialRecusada(method: string, config: BitcoinCoreRpcConfig): string {
+  const avisos: string[] = [];
+
+  if (config.username !== config.username.trim()) {
+    avisos.push("O USUÁRIO tem espaço no começo ou no fim. Quase sempre é engano de digitação.");
+  }
+  if (config.password !== config.password.trim()) {
+    avisos.push("A SENHA tem espaço no começo ou no fim. Quase sempre é engano de digitação.");
+  }
+  if (config.password.length === 0) {
+    avisos.push("A SENHA chegou VAZIA aqui, mesmo que o campo pareça preenchido.");
+  }
+
+  return (
+    `O nó RECEBEU a requisição (${method}) e RECUSOU a credencial — HTTP 401.\n` +
+    "  Não é problema de rede nem de endereço: a conexão funcionou.\n" +
+    "\n" +
+    "  O que esta tela enviou:\n" +
+    `    usuário: «${config.username}» (${config.username.length} caracteres)\n` +
+    `    senha:   ${config.password.length} caracteres (não é mostrada)\n` +
+    "\n" +
+    "  Confira contra rpcuser= e rpcpassword= do bitcoin.conf do seu nó.\n" +
+    "  Se o número de caracteres da senha não bate com o que você digitou, o\n" +
+    "  teclado comeu caractere — use o botão do olho para ver o campo.\n" +
+    "  Se você editou o bitcoin.conf, o nó precisa ser reiniciado para valer." +
+    (avisos.length > 0 ? `\n\n  ATENÇÃO:\n${avisos.map((a) => `    - ${a}`).join("\n")}` : "")
+  );
+}
+
 async function rpcCall<T>(
   baseUrl: string,
   config: BitcoinCoreRpcConfig,
@@ -186,6 +251,12 @@ async function rpcCall<T>(
       body.error.code ?? null,
       `Nó recusou ${method}: ${body.error.message ?? "erro sem mensagem"} (código ${body.error.code ?? "?"}).`,
     );
+  }
+
+  // O 401 vem antes de qualquer processamento de RPC, com corpo vazio: é o
+  // único status para o qual não existe mensagem do nó a repassar.
+  if (response.status === 401) {
+    throw new Error(mensagemDeCredencialRecusada(method, config));
   }
 
   if (!response.ok) {

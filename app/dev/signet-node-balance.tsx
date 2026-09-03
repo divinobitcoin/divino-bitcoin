@@ -83,6 +83,7 @@ export default function SignetNodeBalanceScreen() {
   const [url, setUrl] = useState(URL_PADRAO);
   const [usuario, setUsuario] = useState("");
   const [senha, setSenha] = useState("");
+  const [senhaVisivel, setSenhaVisivel] = useState(false);
   const [status, setStatus] = useState<"idle" | "loading" | "error" | "done">("idle");
   const [errorMessage, setErrorMessage] = useState("");
   const [resultado, setResultado] = useState<Resultado | null>(null);
@@ -228,7 +229,8 @@ export default function SignetNodeBalanceScreen() {
             style={styles.input}
           />
           <Text style={styles.hint}>
-            Do celular, `127.0.0.1` é o próprio celular. Use o IP do computador na rede local.
+            Do celular, 127.0.0.1 é o próprio celular — e não há nó nenhum aqui. Use o IP do
+            computador onde o bitcoind roda, na rede local.
           </Text>
         </View>
 
@@ -247,17 +249,48 @@ export default function SignetNodeBalanceScreen() {
 
         <View style={styles.inputGroup}>
           <Text style={styles.label}>SENHA RPC</Text>
-          <TextInput
-            value={senha}
-            onChangeText={setSenha}
-            placeholder="rpcpassword do bitcoin.conf"
-            placeholderTextColor={cores.textoTerciario}
-            autoCapitalize="none"
-            autoCorrect={false}
-            secureTextEntry
-            style={styles.input}
-          />
-          <Text style={styles.hint}>Digitada por sessão. Não é gravada em lugar nenhum.</Text>
+          <View style={styles.senhaLinha}>
+            <TextInput
+              value={senha}
+              onChangeText={setSenha}
+              placeholder="rpcpassword do bitcoin.conf"
+              placeholderTextColor={cores.textoTerciario}
+              autoCapitalize="none"
+              autoCorrect={false}
+              secureTextEntry={!senhaVisivel}
+              style={[styles.input, styles.senhaCampo]}
+            />
+            {/*
+              Sem isto, o usuário digita às cegas e um caractere comido pelo
+              teclado é indistinguível de senha errada: os dois dão HTTP 401.
+              Observado no aparelho do proprietário durante uma restauração no
+              Blockstream Green, 03/09/2026.
+
+              Mostrar é escolha explícita, começa desligado, e some ao sair da
+              tela junto com a própria senha.
+            */}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={senhaVisivel ? "Esconder a senha" : "Mostrar a senha"}
+              onPress={() => {
+                haptic.light();
+                setSenhaVisivel((v) => !v);
+              }}
+              android_ripple={{ color: cores.borda, borderless: true }}
+              style={styles.senhaBotao}
+            >
+              <MaterialIcons
+                name={senhaVisivel ? "visibility-off" : "visibility"}
+                size={22}
+                color={cores.textoSecundario}
+              />
+            </Pressable>
+          </View>
+          <Text style={styles.hint}>
+            {senha.length === 0
+              ? "Digitada por sessão. Não é gravada em lugar nenhum."
+              : `${senha.length} caracteres digitados. Não é gravada em lugar nenhum.`}
+          </Text>
         </View>
 
         <Pressable
@@ -340,6 +373,9 @@ const styles = StyleSheet.create({
     color: cores.textoPrimario, fontSize: 15, paddingHorizontal: 14, paddingVertical: 13,
   },
   inputAlto: { minHeight: 84, textAlignVertical: "top" },
+  senhaLinha: { alignItems: "center", flexDirection: "row", gap: 8 },
+  senhaCampo: { flex: 1 },
+  senhaBotao: { alignItems: "center", height: 48, justifyContent: "center", width: 48 },
   button: { alignItems: "center", backgroundColor: cores.acaoPrimaria, borderRadius: 14, justifyContent: "center", minHeight: 52 },
   buttonDisabled: { opacity: 0.7 },
   buttonText: { color: cores.acaoPrimariaTexto, fontSize: 15, fontWeight: "700" },

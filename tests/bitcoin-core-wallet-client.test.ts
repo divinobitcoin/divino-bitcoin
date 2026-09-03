@@ -175,16 +175,16 @@ describe("ensureWatchOnlyWallet", () => {
     await expect(ensureWatchOnlyWallet(CONFIG, fetchImpl)).rejects.toThrow(/motivo B/);
   });
 
-  it("usa o status HTTP como motivo só quando não há corpo JSON-RPC legível (ex: 401 de autenticação)", async () => {
+  it("usa o status HTTP como motivo quando não há corpo JSON-RPC legível", async () => {
     const fetchImpl = vi.fn(async () => ({
       ok: false,
-      status: 401,
+      status: 502,
       json: async () => {
         throw new Error("corpo não é JSON");
       },
     })) as unknown as typeof fetch;
 
-    await expect(ensureWatchOnlyWallet(CONFIG, fetchImpl)).rejects.toThrow(/status HTTP 401/);
+    await expect(ensureWatchOnlyWallet(CONFIG, fetchImpl)).rejects.toThrow(/status HTTP 502/);
   });
 
   it("recusa prosseguir se o nó devolver private_keys_enabled != false", async () => {
@@ -486,5 +486,87 @@ describe("broadcastRawTransactionViaCoreRpc", () => {
         fetchImpl,
       }),
     ).rejects.toThrow(/already in block chain/);
+  });
+});
+
+/**
+ * `NODE-AUTH-BLIND-001` — o 401 é o único status que chega sem corpo.
+ *
+ * `RPC-HTTP-STATUS-001` já tinha estabelecido que o Core põe o erro real no
+ * corpo JSON-RPC e devolve HTTP 500. O 401 escapa dessa regra: é gerado antes
+ * de qualquer processamento de RPC, e o corpo vem vazio. Não há mensagem do nó
+ * para repassar — a mensagem tem de ser construída aqui.
+ *
+ * O caso real: 04/09/2026, o Xiaomi devolveu 401 lendo saldo. O nó estava
+ * certo (`curl` do mesmo IP de rede local respondeu 200 com a credencial do
+ * `bitcoin.conf`), e ainda assim não havia como saber o que o aparelho tinha
+ * enviado. A credencial é digitada num campo de senha, onde o usuário não vê o
+ * que escreveu, e teclado de Android come caractere.
+ */
+describe("HTTP 401 — credencial recusada pelo nó", () => {
+  function fetch401(): typeof fetch {
+    return vi.fn(async () => ({
+      ok: false,
+      status: 401,
+      // O 401 do Core vem com corpo vazio: `json()` lança.
+      json: async () => {
+        throw new Error("corpo vazio");
+      },
+    })) as unknown as typeof fetch;
+  }
+
+  it("diz que a conexão funcionou e que o problema é a credencial", async () => {
+    const erro = await ensureWatchOnlyWallet(CONFIG, fetch401()).catch((e: Error) => e.message);
+    expect(erro).toMatch(/RECUSOU a credencial/);
+    expect(erro).toMatch(/HTTP 401/);
+    expect(erro).toMatch(/Não é problema de rede/);
+  });
+
+  /**
+   * O número de caracteres é o que transforma "redigite e reze" em
+   * diagnóstico: se o usuário digitou 6 e a mensagem diz 5, o teclado comeu um.
+   */
+  it("informa o usuário enviado e o TAMANHO da senha", async () => {
+    const erro = await ensureWatchOnlyWallet(CONFIG, fetch401()).catch((e: Error) => e.message);
+    expect(erro).toContain("«test_user»");
+    expect(erro).toContain("13 caracteres");
+  });
+
+  /**
+   * **O teste mais importante deste bloco.**
+   *
+   * A mensagem de erro vai para a tela, e a tela vira captura de tela que o
+   * proprietário cola no chat — já aconteceu. Uma senha impressa aqui vazaria
+   * por esse caminho. Nem o valor inteiro, nem um pedaço: "só a primeira letra
+   * para ajudar" é como vazamento começa.
+   */
+  it("NUNCA imprime a senha, nem em pedaço", async () => {
+    const config = { ...CONFIG, password: "senha_secreta_do_no" };
+    const erro = await ensureWatchOnlyWallet(config, fetch401()).catch((e: Error) => e.message);
+    expect(erro).not.toContain("senha_secreta_do_no");
+    for (const pedaco of ["senha_", "secreta", "_do_no", "s_"]) {
+      expect(erro, `vazou o trecho ${pedaco}`).not.toContain(pedaco);
+    }
+  });
+
+  /**
+   * Espaço nas pontas é denunciado, não removido. Uma senha de RPC pode
+   * legitimamente terminar em espaço; aparar por conta própria seria adivinhar
+   * a intenção e falhar em silêncio contra um nó configurado assim — classe do
+   * `WF-F11`.
+   */
+  it("denuncia espaço nas pontas do usuário e da senha", async () => {
+    const comEspaco = { ...CONFIG, username: "test_user ", password: " test_password" };
+    const erro = await ensureWatchOnlyWallet(comEspaco, fetch401()).catch((e: Error) => e.message);
+    expect(erro).toMatch(/O USUÁRIO tem espaço/);
+    expect(erro).toMatch(/A SENHA tem espaço/);
+    // E o espaço tem de ser VISÍVEL: por isso as aspas angulares em volta.
+    expect(erro).toContain("«test_user »");
+  });
+
+  it("avisa quando a senha chegou vazia, mesmo com o campo parecendo cheio", async () => {
+    const vazia = { ...CONFIG, password: "" };
+    const erro = await ensureWatchOnlyWallet(vazia, fetch401()).catch((e: Error) => e.message);
+    expect(erro).toMatch(/chegou VAZIA/);
   });
 });
