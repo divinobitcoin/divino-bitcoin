@@ -93,7 +93,7 @@ import {
   type EsploraConfig,
   type EsploraUtxo,
 } from "../shared/esplora-client";
-import { buildPsbtFromSelection } from "../shared/psbt-builder";
+import { buildPsbtFromSelection, type Bip32DerivationInfo } from "../shared/psbt-builder";
 import { signAndFinalizeWithTestSeed, signPsbtWithTestSeed } from "../shared/psbt-signer";
 import {
   broadcastRawTransaction,
@@ -172,6 +172,35 @@ function addressFor(seedHex: string, path: string): string {
       const address = btc.p2wpkh(child.publicKey, btc.TEST_NETWORK).address;
       if (!address) fail(`Não foi possível derivar endereço em ${path}.`);
       return address;
+    } finally {
+      child.wipePrivateData();
+    }
+  } finally {
+    root.wipePrivateData();
+  }
+}
+
+/**
+ * Produz a informação de origem (`bip32Derivation`) de um caminho.
+ *
+ * Só material **público** sai daqui: chave pública comprimida, fingerprint da
+ * mestra e o caminho. Nada disto permite gastar. Deriva porque mora em
+ * `scripts/`, que não é *runtime root* — a carteira não pode fazer isto, e é
+ * essa a razão de o campo ter de chegar pronto até ela.
+ *
+ * A fingerprint **não** depende dos bytes de versão: ela é derivada do hash da
+ * chave pública, não da serialização. Por isso `fromMasterSeed` sem
+ * `VERSOES_TESTNET` devolve a mesma fingerprint — mesmo fato que já estava
+ * verificado para endereços em `TPUB-SERIAL-001`.
+ */
+function derivationInfoFor(seedHex: string, path: string): Bip32DerivationInfo {
+  const root = HDKey.fromMasterSeed(hex.decode(seedHex));
+  try {
+    const masterFingerprint = root.fingerprint.toString(16).padStart(8, "0");
+    const child = root.derive(path);
+    try {
+      if (!child.publicKey) fail(`Derivação em ${path} não produziu chave pública.`);
+      return { publicKeyHex: hex.encode(child.publicKey), masterFingerprint, path };
     } finally {
       child.wipePrivateData();
     }
@@ -392,13 +421,24 @@ async function commandSend(args: string[]): Promise<void> {
     );
   }
 
+  // `PSBT-DERIV-001`. Todas as entradas deste script vêm do mesmo endereço de
+  // recebimento, então a origem é a mesma para todas. Numa carteira de verdade
+  // cada entrada tem o seu caminho, e é por isso que `derivationFor` recebe o
+  // UTXO em vez de devolver um valor fixo.
   const psbt = buildPsbtFromSelection({
     selection: selecao.selection,
     recipientAddress: destino,
     changeAddress,
     network: NETWORK,
     ownerAddressFor: () => receiveAddress,
+    derivationFor: () => derivationInfoFor(seedHex, RECEIVE_PATH),
+    changeDerivation: derivationInfoFor(seedHex, CHANGE_PATH),
   });
+
+  console.log(
+    `Origem das chaves na PSBT: entradas ${psbt.hasInputDerivations ? "SIM" : "não"}` +
+      `, troco ${psbt.hasChangeDerivation ? "SIM" : "não"}  (PSBT-DERIV-001)`,
+  );
 
   const final = signAndFinalizeWithTestSeed({
     psbtBase64: psbt.psbtBase64,
