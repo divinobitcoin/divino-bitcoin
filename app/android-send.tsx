@@ -2,9 +2,10 @@ import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import * as Clipboard from "expo-clipboard";
 import { useRouter } from "expo-router";
 import { useMemo, useState } from "react";
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { CampoTexto } from "@/components/campo-texto";
 import { DemoStatusBanner } from "@/components/demo-status-banner";
 import { useWallet } from "@/lib/wallet-context";
 import { DEMO_PAYMENT_FIXTURE } from "@/shared/demo-fixtures";
@@ -147,7 +148,7 @@ export default function AndroidSendScreen() {
 
         <View style={styles.formCard}>
           <Text style={styles.fieldLabel}>REFERÊNCIA DEMONSTRATIVA</Text>
-          <TextInput
+          <CampoTexto
             autoCapitalize="none"
             autoCorrect={false}
             onChangeText={(value) => {
@@ -185,7 +186,7 @@ export default function AndroidSendScreen() {
           </View>
           <View style={styles.divider} />
           <Text style={styles.fieldLabel}>VALOR EM SATS</Text>
-          <TextInput
+          <CampoTexto
             keyboardType="numeric"
             onChangeText={setAmount}
             placeholder="Ex.: 1.000"
@@ -196,7 +197,7 @@ export default function AndroidSendScreen() {
           />
           <View style={styles.divider} />
           <Text style={styles.fieldLabel}>DESCRIÇÃO OPCIONAL</Text>
-          <TextInput
+          <CampoTexto
             onChangeText={setMemo}
             placeholder="Ex.: Pagamento de teste"
             placeholderTextColor="#98A2B3"

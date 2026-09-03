@@ -1,7 +1,8 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
+import { CampoTexto } from "@/components/campo-texto";
 import { ScreenContainer } from "@/components/screen-container";
 import { cores } from "@/constants/palette";
 import { haptic } from "@/lib/haptics";
@@ -187,7 +188,7 @@ export default function SignetNodeBalanceScreen() {
 
         <View style={styles.inputGroup}>
           <Text style={styles.label}>CHAVE ESTENDIDA PÚBLICA DA CONTA</Text>
-          <TextInput
+          <CampoTexto
             value={xpub}
             onChangeText={setXpub}
             placeholder="tpub..."
@@ -202,7 +203,7 @@ export default function SignetNodeBalanceScreen() {
 
         <View style={styles.inputGroup}>
           <Text style={styles.label}>NASCIMENTO DA CARTEIRA</Text>
-          <TextInput
+          <CampoTexto
             value={nascimento}
             onChangeText={setNascimento}
             placeholder="AAAA-MM-DD"
@@ -218,7 +219,7 @@ export default function SignetNodeBalanceScreen() {
 
         <View style={styles.inputGroup}>
           <Text style={styles.label}>ENDEREÇO DO NÓ</Text>
-          <TextInput
+          <CampoTexto
             value={url}
             onChangeText={setUrl}
             placeholder={URL_PADRAO}
@@ -236,7 +237,7 @@ export default function SignetNodeBalanceScreen() {
 
         <View style={styles.inputGroup}>
           <Text style={styles.label}>USUÁRIO RPC</Text>
-          <TextInput
+          <CampoTexto
             value={usuario}
             onChangeText={setUsuario}
             placeholder="rpcuser do bitcoin.conf"
@@ -250,7 +251,7 @@ export default function SignetNodeBalanceScreen() {
         <View style={styles.inputGroup}>
           <Text style={styles.label}>SENHA RPC</Text>
           <View style={styles.senhaLinha}>
-            <TextInput
+            <CampoTexto
               value={senha}
               onChangeText={setSenha}
               placeholder="rpcpassword do bitcoin.conf"

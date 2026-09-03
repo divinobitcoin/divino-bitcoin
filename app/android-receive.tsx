@@ -2,9 +2,10 @@ import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import * as Clipboard from "expo-clipboard";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { Alert, ScrollView, Share, StyleSheet, Text, TextInput, View } from "react-native";
+import { Alert, ScrollView, Share, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { CampoTexto } from "@/components/campo-texto";
 import { DemoStatusBanner } from "@/components/demo-status-banner";
 import { useWallet } from "@/lib/wallet-context";
 import { formatSats, type LightningInvoice } from "@/shared/wallet";
@@ -125,7 +126,7 @@ export default function AndroidReceiveScreen() {
 
         <View style={styles.formCard}>
           <Text style={styles.fieldLabel}>VALOR EM SATS</Text>
-          <TextInput
+          <CampoTexto
             value={amount}
             onChangeText={setAmount}
             placeholder="Ex.: 1.000"
@@ -136,7 +137,7 @@ export default function AndroidReceiveScreen() {
           />
           <View style={styles.divider} />
           <Text style={styles.fieldLabel}>DESCRIÇÃO OPCIONAL</Text>
-          <TextInput
+          <CampoTexto
             value={memo}
             onChangeText={setMemo}
             placeholder="Ex.: Venda de café"

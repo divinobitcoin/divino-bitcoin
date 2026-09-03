@@ -8,10 +8,10 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 
+import { CampoTexto } from "@/components/campo-texto";
 import { ScreenContainer } from "@/components/screen-container";
 import { cores } from "@/constants/palette";
 import { haptic } from "@/lib/haptics";
@@ -311,7 +311,7 @@ export default function SignetPsbtScreen() {
 
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Endereço de origem</Text>
-          <TextInput
+          <CampoTexto
             value={originAddress}
             onChangeText={setOriginAddress}
             placeholder="tb1q..."
@@ -359,7 +359,7 @@ export default function SignetPsbtScreen() {
 
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Endereço de destino</Text>
-              <TextInput
+              <CampoTexto
                 value={destination}
                 onChangeText={setDestination}
                 placeholder="tb1q..."
@@ -373,7 +373,7 @@ export default function SignetPsbtScreen() {
             <View style={styles.inputRow}>
               <View style={[styles.inputGroup, styles.flex]}>
                 <Text style={styles.label}>Valor (sats)</Text>
-                <TextInput
+                <CampoTexto
                   value={amount}
                   onChangeText={setAmount}
                   placeholder="5000"
@@ -384,7 +384,7 @@ export default function SignetPsbtScreen() {
               </View>
               <View style={[styles.inputGroup, styles.feeField]}>
                 <Text style={styles.label}>sat/vB</Text>
-                <TextInput
+                <CampoTexto
                   value={feeRate}
                   onChangeText={setFeeRate}
                   placeholder="2"
@@ -397,7 +397,7 @@ export default function SignetPsbtScreen() {
 
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Endereço de troco</Text>
-              <TextInput
+              <CampoTexto
                 value={changeAddress}
                 onChangeText={setChangeAddress}
                 placeholder="tb1q..."
@@ -455,7 +455,7 @@ export default function SignetPsbtScreen() {
 
             <View style={styles.inputGroup}>
               <Text style={styles.label}>PSBT assinada (cole de volta)</Text>
-              <TextInput
+              <CampoTexto
                 value={signedPsbt}
                 onChangeText={setSignedPsbt}
                 placeholder="cHNidP8B..."

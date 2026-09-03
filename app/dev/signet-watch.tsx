@@ -1,7 +1,8 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
+import { CampoTexto } from "@/components/campo-texto";
 import { ScreenContainer } from "@/components/screen-container";
 import { cores } from "@/constants/palette";
 import { haptic } from "@/lib/haptics";
@@ -82,7 +83,7 @@ export default function SignetWatchScreen() {
 
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Endereço</Text>
-          <TextInput
+          <CampoTexto
             value={address}
             onChangeText={setAddress}
             placeholder="tb1q..."
