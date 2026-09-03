@@ -376,9 +376,21 @@ async function commandSend(args: string[]): Promise<void> {
   // Resolvido ANTES de montar qualquer coisa: se as credenciais do nó
   // estiverem erradas, é melhor falhar aqui do que depois de já ter
   // assinado. Não transmite nada por si só.
-  const nodeConfig: BitcoinCoreRpcConfig | null = viaNode
-    ? { url: process.env.DIVINO_CORE_RPC_URL ?? "http://127.0.0.1:38332", ...resolveBitcoinCoreRpcCredentials() }
-    : null;
+  let nodeConfig: BitcoinCoreRpcConfig | null = null;
+  if (viaNode) {
+    // Destrinchado em vez de espalhado: o resolvedor devolve também `source` e
+    // `path`, que descrevem de ONDE a credencial veio e não têm nada que fazer
+    // dentro da configuração RPC.
+    const credencial = resolveBitcoinCoreRpcCredentials();
+    nodeConfig = {
+      url: process.env.DIVINO_CORE_RPC_URL ?? "http://127.0.0.1:38332",
+      username: credencial.username,
+      password: credencial.password,
+    };
+    console.log(
+      `Credencial do nó: ${credencial.source}${credencial.path ? ` (${credencial.path})` : ""}`,
+    );
+  }
 
   const targetSats = Number(satsArg);
   const feeRate = taxaArg && !taxaArg.startsWith("--") ? Number(taxaArg) : 2;
