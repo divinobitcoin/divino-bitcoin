@@ -22,7 +22,7 @@ import { base64 } from "@scure/base";
  * `Property 'Buffer' doesn't exist` — e as quatro validações passavam, porque
  * `@types/node` promete ao `tsc` que ele existe.
  *
- * Observado no Xiaomi em 04/09/2026, na primeira tentativa de ler saldo pelo nó.
+ * Observado no Xiaomi em 03/09/2026, na primeira tentativa de ler saldo pelo nó.
  * Ver `tests/runtime-sem-buffer.test.ts`, que agora impede a volta.
  */
 function basicAuth(username: string, password: string): string {

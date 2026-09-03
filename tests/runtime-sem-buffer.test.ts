@@ -8,7 +8,7 @@ import { describe, expect, it } from "vitest";
  *
  * ## O defeito que gerou este teste
  *
- * 04/09/2026, primeira tentativa de ler saldo pelo nó no Xiaomi:
+ * 03/09/2026, primeira tentativa de ler saldo pelo nó no Xiaomi:
  *
  * > `Não foi possível criar nem carregar a wallet "divino-conta-671e8db6".`
  * > `createwallet: Property 'Buffer' doesn't exist`

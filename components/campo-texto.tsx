@@ -6,7 +6,7 @@ import { TextInput, type TextInputProps } from "react-native";
  *
  * ## O vazamento que gerou este componente (`AUTOFILL-LEAK-001`)
  *
- * 04/09/2026. O gerenciador de senhas do Google ofereceu, no campo de senha do
+ * 03/09/2026. O gerenciador de senhas do Google ofereceu, no campo de senha do
  * RPC da tela de saldo, um valor que ele mesmo havia guardado de uma digitação
  * anterior. O proprietário confiou na sugestão; ela veio com um caractere em
  * caixa errada e o nó recusou a credencial com HTTP 401.

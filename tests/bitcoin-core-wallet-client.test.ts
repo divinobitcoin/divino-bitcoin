@@ -497,7 +497,7 @@ describe("broadcastRawTransactionViaCoreRpc", () => {
  * de qualquer processamento de RPC, e o corpo vem vazio. Não há mensagem do nó
  * para repassar — a mensagem tem de ser construída aqui.
  *
- * O caso real: 04/09/2026, o Xiaomi devolveu 401 lendo saldo. O nó estava
+ * O caso real: 03/09/2026, o Xiaomi devolveu 401 lendo saldo. O nó estava
  * certo (`curl` do mesmo IP de rede local respondeu 200 com a credencial do
  * `bitcoin.conf`), e ainda assim não havia como saber o que o aparelho tinha
  * enviado. A credencial é digitada num campo de senha, onde o usuário não vê o

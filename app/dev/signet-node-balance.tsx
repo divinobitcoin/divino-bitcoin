@@ -57,7 +57,7 @@ const URL_PADRAO = "http://127.0.0.1:38332";
 
 /**
  * Endereços por ramo. Vinte é o mesmo limite de lacuna que o Blockstream Green
- * usa por padrão, observado em 04/09/2026.
+ * usa por padrão, observado em 03/09/2026.
  *
  * A faixa **nunca encolhe**: o Core expande para o keypool e depois recusa
  * reimport menor (`RANGE-SHRINK-001`). `importWatchOnlyDescriptors` já usa o

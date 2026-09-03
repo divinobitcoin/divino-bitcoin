@@ -9,7 +9,7 @@ import { describe, expect, it } from "vitest";
  *
  * ## O caso real
  *
- * 04/09/2026. O gerenciador de senhas do Google ofereceu, no campo de senha do
+ * 03/09/2026. O gerenciador de senhas do Google ofereceu, no campo de senha do
  * RPC da tela de saldo, um valor que ele mesmo havia guardado de uma digitação
  * anterior. O proprietário aceitou a sugestão; ela veio com um caractere em
  * caixa errada, e o nó recusou a credencial com HTTP 401.

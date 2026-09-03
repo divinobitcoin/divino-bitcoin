@@ -1,6 +1,6 @@
 # KIT-MNEMONIC-001 — as doze palavras recuperadas num celular
 
-**Data:** 03 e 04/09/2026
+**Data:** 03/09/2026
 **Estado:** **FECHADO para derivação.** Aberto para visibilidade de cadeia.
 **Baseline:** `3dff9d0`
 
@@ -132,7 +132,7 @@ Levantamento feito no aparelho e na documentação, não em fórum:
 |---|---|---|
 | Zeus | **não** — Mainnet, Testnet, Multipeer | observado no aparelho, 01/09 |
 | BlueWallet | **não documentado** — a wiki oficial de tipos de carteira não menciona testnet nem signet | documentação, 03/09 |
-| Blockstream Green | **não** — "Selecionar rede" oferece só Mainnet e Testnet | observado no aparelho, 04/09 |
+| Blockstream Green | **não** — "Selecionar rede" oferece só Mainnet e Testnet | observado no aparelho, 03/09 |
 
 **Isto refuta a alegação de comunidade** trazida em 03/09, de que dava para usar
 Signet no Green apontando um "Personal Electrum Server". A opção
