@@ -78,9 +78,12 @@ class DivinoNativeVaultModule : Module() {
         return@AsyncFunction
       }
       provisionPromise = promise
-      val intent = Intent(activity, SignetMnemonicActivity::class.java)
-      intent.putExtra(SignetMnemonicActivity.EXTRA_MODE, mode)
-      activity.startActivityForResult(intent, SignetMnemonicActivity.REQUEST_PROVISION)
+      val target = if (mode == "generate") {
+        SignetMnemonicRevealActivity::class.java
+      } else {
+        SignetMnemonicActivity::class.java
+      }
+      activity.startActivityForResult(Intent(activity, target), SignetMnemonicRevealActivity.REQUEST_PROVISION)
     }
 
     AsyncFunction("getPublicDescriptor") { profileId: String ->
@@ -130,18 +133,19 @@ class DivinoNativeVaultModule : Module() {
     }
 
     OnActivityResult { _, payload ->
-      if (payload.requestCode != SignetMnemonicActivity.REQUEST_PROVISION) {
+      if (payload.requestCode != SignetMnemonicRevealActivity.REQUEST_PROVISION) {
         return@OnActivityResult
       }
       val pending = provisionPromise ?: return@OnActivityResult
       provisionPromise = null
       if (payload.resultCode != Activity.RESULT_OK) {
+        SignetProvisionSession.clear()
         pending.reject("VAULT_CANCELLED", "Provisionamento cancelado.", null)
         return@OnActivityResult
       }
       val extras = payload.data?.extras
-      val profileId = extras?.getString(SignetMnemonicActivity.EXTRA_PROFILE_ID)
-      val fingerprint = extras?.getString(SignetMnemonicActivity.EXTRA_FINGERPRINT)
+      val profileId = extras?.getString(SignetMnemonicRevealActivity.EXTRA_PROFILE_ID)
+      val fingerprint = extras?.getString(SignetMnemonicRevealActivity.EXTRA_FINGERPRINT)
       if (profileId.isNullOrEmpty() || fingerprint.isNullOrEmpty()) {
         pending.reject("VAULT_REFUSED", "O cofre não devolveu um handle público.", null)
         return@OnActivityResult

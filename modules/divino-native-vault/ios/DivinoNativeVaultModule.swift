@@ -37,19 +37,40 @@ public class DivinoNativeVaultModule: Module {
           promise.reject("VAULT_UNAVAILABLE", "Sem tela nativa. Use o development build.")
           return
         }
-        let controller = SignetMnemonicViewController(mode: mode == "import" ? .importPhrase : .generate)
-        controller.onFinish = { result in
-          switch result {
-          case .success(let stored):
-            promise.resolve([
-              "profileId": stored["profileId"] as Any,
-              "masterFingerprint": stored["masterFingerprint"] as Any,
-              "network": SignetVaultCrypto.network,
-            ])
-          case .failure(let error):
-            let vault = error as? VaultException
-            promise.reject(vault?.code ?? "VAULT_CANCELLED", vault?.message ?? error.localizedDescription)
+        let controller: UIViewController
+        if mode == "import" {
+          let importController = SignetMnemonicViewController()
+          importController.onFinish = { result in
+            switch result {
+            case .success(let stored):
+              promise.resolve([
+                "profileId": stored["profileId"] as Any,
+                "masterFingerprint": stored["masterFingerprint"] as Any,
+                "network": SignetVaultCrypto.network,
+              ])
+            case .failure(let error):
+              let vault = error as? VaultException
+              promise.reject(vault?.code ?? "VAULT_CANCELLED", vault?.message ?? error.localizedDescription)
+            }
           }
+          controller = importController
+        } else {
+          let reveal = SignetMnemonicRevealViewController()
+          reveal.onFinish = { result in
+            switch result {
+            case .success(let stored):
+              promise.resolve([
+                "profileId": stored["profileId"] as Any,
+                "masterFingerprint": stored["masterFingerprint"] as Any,
+                "network": SignetVaultCrypto.network,
+              ])
+            case .failure(let error):
+              SignetProvisionSession.clear()
+              let vault = error as? VaultException
+              promise.reject(vault?.code ?? "VAULT_CANCELLED", vault?.message ?? error.localizedDescription)
+            }
+          }
+          controller = reveal
         }
         presenter.present(controller, animated: true)
       }

@@ -1,64 +1,74 @@
 import UIKit
 
-final class SignetMnemonicViewController: UIViewController {
-  var onFinish: ((Result<[String: String], Error>) -> Void)?
+final class SignetMnemonicQuizViewController: UIViewController {
+  var onSuccess: (([String: String]) -> Void)?
   private let store = SignetVaultStore()
 
   override func viewDidLoad() {
     super.viewDidLoad()
     view.backgroundColor = UIColor(red: 0.03, green: 0.03, blue: 0.03, alpha: 1)
     isModalInPresentation = true
-    buildImport()
+    guard let words = SignetProvisionSession.words(), words.count >= 2 else {
+      dismiss(animated: true)
+      return
+    }
+    let indexA = Int.random(in: 0..<words.count)
+    var indexB = Int.random(in: 0..<words.count)
+    if indexB == indexA {
+      indexB = (indexA + 1) % words.count
+    }
+    buildQuiz(words: words, indexA: indexA, indexB: indexB)
   }
 
-  private func buildImport() {
+  private func buildQuiz(words: [String], indexA: Int, indexB: Int) {
     let scroll = makeScroll()
     var y: CGFloat = 24
     func add(_ view: UIView, height: CGFloat) {
       view.frame = CGRect(x: 20, y: y, width: scroll.bounds.width - 40, height: height)
       view.autoresizingMask = [.flexibleWidth]
       scroll.addSubview(view)
-      y += height + 10
+      y += height + 12
     }
     add(label("SIGNET · MATERIAL DESCARTÁVEL", size: 11, color: UIColor(red: 0.95, green: 0.66, blue: 0, alpha: 1), bold: true), height: 18)
-    add(label("Importar frase de teste", size: 28, color: UIColor(red: 0.98, green: 0.95, blue: 0.87, alpha: 1), bold: true), height: 36)
-    add(label("Experimental, não auditado. Digite uma frase descartável. Nunca importe uma seed com valor.", size: 14, color: UIColor(white: 0.66, alpha: 1), bold: false), height: 70)
-    let fields = (0..<24).map { field("\($0 + 1)") }
-    fields.forEach { add($0, height: 40) }
+    add(label("Confirme no papel", size: 28, color: UIColor(red: 0.98, green: 0.95, blue: 0.87, alpha: 1), bold: true), height: 36)
+    add(label("A lista não está nesta tela de propósito. Digite a palavra \(indexA + 1) e a palavra \(indexB + 1). Se errar, volta à lista — o cofre ainda não guardou nada.", size: 14, color: UIColor(white: 0.66, alpha: 1), bold: false), height: 80)
+    let fieldA = field("Palavra \(indexA + 1)")
+    let fieldB = field("Palavra \(indexB + 1)")
+    add(fieldA, height: 44)
+    add(fieldB, height: 44)
     let error = label("", size: 13, color: UIColor(red: 0.97, green: 0.44, blue: 0.44, alpha: 1), bold: false)
     add(error, height: 40)
-    let save = button("Importar para o cofre")
-    save.addAction(UIAction { [weak self] _ in
+    let confirm = button("Confirmar e guardar")
+    confirm.addAction(UIAction { [weak self] _ in
       guard let self else { return }
-      let typed = fields.map { $0.text?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() ?? "" }.filter { !$0.isEmpty }
-      do {
-        try SignetVaultCrypto.validateMnemonic(typed)
-        self.persist(typed, error: error, button: save)
-      } catch let failure {
-        error.text = (failure as? VaultException)?.message ?? "Frase inválida."
+      let typedA = fieldA.text?.trimmingCharacters(in: .whitespaces).lowercased() ?? ""
+      let typedB = fieldB.text?.trimmingCharacters(in: .whitespaces).lowercased() ?? ""
+      if typedA != words[indexA] || typedB != words[indexB] {
+        self.dismiss(animated: true)
+        return
       }
+      self.persistAfterQuiz(words, error: error, button: confirm)
     }, for: .touchUpInside)
-    add(save, height: 48)
-    let cancel = button("Cancelar")
-    cancel.backgroundColor = UIColor(white: 0.12, alpha: 1)
-    cancel.setTitleColor(UIColor(red: 0.98, green: 0.95, blue: 0.87, alpha: 1), for: .normal)
-    cancel.addAction(UIAction { [weak self] _ in
-      self?.dismiss(animated: true) {
-        self?.onFinish?(.failure(VaultException(code: "VAULT_CANCELLED", message: "Provisionamento cancelado.")))
-      }
+    add(confirm, height: 48)
+    let back = button("Voltar à lista")
+    back.backgroundColor = UIColor(white: 0.12, alpha: 1)
+    back.setTitleColor(UIColor(red: 0.98, green: 0.95, blue: 0.87, alpha: 1), for: .normal)
+    back.addAction(UIAction { [weak self] _ in
+      self?.dismiss(animated: true)
     }, for: .touchUpInside)
-    add(cancel, height: 48)
+    add(back, height: 48)
     scroll.contentSize = CGSize(width: view.bounds.width, height: y + 40)
   }
 
-  private func persist(_ words: [String], error: UILabel, button: UIButton) {
+  private func persistAfterQuiz(_ words: [String], error: UILabel, button: UIButton) {
     button.isEnabled = false
     DispatchQueue.global(qos: .userInitiated).async {
       do {
         let stored = try self.store.persistNewProfile(words: words)
+        SignetProvisionSession.clear()
         DispatchQueue.main.async {
           self.dismiss(animated: true) {
-            self.onFinish?(.success(stored))
+            self.onSuccess?(stored)
           }
         }
       } catch {

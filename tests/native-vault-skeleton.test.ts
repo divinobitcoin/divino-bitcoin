@@ -90,6 +90,58 @@ describe("contrato do cofre nativo Signet", () => {
     expect(kotlinSource).toContain("private fun rejectUnavailableOperation(operation: String): Unit");
   });
 
+  it("revelação e quiz são Activities distintas; o envelope só nasce depois do quiz", () => {
+    const reveal = readFileSync(
+      resolve(
+        import.meta.dirname,
+        "../modules/divino-native-vault/android/src/main/java/expo/modules/divinonativevault/SignetMnemonicRevealActivity.kt",
+      ),
+      "utf8",
+    );
+    const quiz = readFileSync(
+      resolve(
+        import.meta.dirname,
+        "../modules/divino-native-vault/android/src/main/java/expo/modules/divinonativevault/SignetMnemonicQuizActivity.kt",
+      ),
+      "utf8",
+    );
+    const manifest = readFileSync(
+      resolve(import.meta.dirname, "../modules/divino-native-vault/android/src/main/AndroidManifest.xml"),
+      "utf8",
+    );
+    const session = readFileSync(
+      resolve(
+        import.meta.dirname,
+        "../modules/divino-native-vault/android/src/main/java/expo/modules/divinonativevault/SignetProvisionSession.kt",
+      ),
+      "utf8",
+    );
+
+    expect(manifest).toContain("SignetMnemonicRevealActivity");
+    expect(manifest).toContain("SignetMnemonicQuizActivity");
+    expect(reveal).toContain("Anotei no papel");
+    expect(reveal).toContain("lockScreen");
+    expect(reveal).not.toContain("persistNewProfile");
+    expect(reveal).not.toContain("Clipboard");
+    expect(quiz).toContain("persistNewProfile");
+    expect(quiz).not.toContain("wordChip");
+    expect(quiz).not.toMatch(/words\.forEachIndexed/);
+    expect(quiz).not.toContain("putExtra(\"words\"");
+    expect(session).toContain("pendingWords");
+    expect(session).not.toMatch(/android\.content\.Intent|putExtra/);
+    const chrome = readFileSync(
+      resolve(
+        import.meta.dirname,
+        "../modules/divino-native-vault/android/src/main/java/expo/modules/divinonativevault/SignetNativeChrome.kt",
+      ),
+      "utf8",
+    );
+    expect(chrome).toContain("FLAG_SECURE");
+    expect(quiz).toContain("lockScreen");
+    expect(kotlinSource).toContain("SignetMnemonicRevealActivity");
+    expect(kotlinSource).not.toMatch(/\b(fun|func|AsyncFunction)\s+["']?getSeed/);
+  });
+
   it("o envelope Android não usa SharedPreferences nem SecureStore", () => {
     const store = readFileSync(
       resolve(
