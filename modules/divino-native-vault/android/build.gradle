@@ -16,3 +16,10 @@ android {
     abortOnError false
   }
 }
+
+dependencies {
+  // ACINQ bitcoin-kmp: BIP-39, BIP-32, BIP-84, PSBT. Usada pelo Phoenix.
+  implementation "fr.acinq.bitcoin:bitcoin-kmp-jvm:0.22.2"
+  implementation "fr.acinq.secp256k1:secp256k1-kmp-jni-android:0.17.3"
+  implementation "androidx.appcompat:appcompat:1.7.1"
+}

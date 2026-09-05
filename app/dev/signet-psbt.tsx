@@ -15,6 +15,11 @@ import { CampoTexto } from "@/components/campo-texto";
 import { ScreenContainer } from "@/components/screen-container";
 import { cores } from "@/constants/palette";
 import { haptic } from "@/lib/haptics";
+import {
+  authorizeSigningIntent,
+  getCapabilities,
+  isNativeVaultAvailable,
+} from "@/modules/divino-native-vault/src";
 import { SIGNET_NETWORK } from "@/shared/bitcoin-network";
 import { selectCoins } from "@/shared/coin-selection";
 import { fetchAddressUtxos, sumUtxoValueSats, type EsploraUtxo } from "@/shared/esplora-client";
@@ -204,6 +209,36 @@ export default function SignetPsbtScreen() {
     Alert.alert("PSBT copiada", "Assine em um assinador externo e cole o resultado abaixo.");
   }
 
+  async function signWithNativeVault() {
+    if (!isNativeVaultAvailable()) {
+      Alert.alert("Cofre ausente", "Abra o development build. O Expo Go não inclui o módulo nativo.");
+      return;
+    }
+    haptic.medium();
+    setBusy(true);
+    setError("");
+    try {
+      const capabilities = await getCapabilities();
+      if (!capabilities.profileId) {
+        setError("O cofre Signet ainda não tem perfil. Abra Cofre Signet em Ajustes e gere uma frase de teste.");
+        haptic.error();
+        return;
+      }
+      const authorized = await authorizeSigningIntent({
+        profileId: capabilities.profileId,
+        network: "signet",
+        psbtBase64: unsignedPsbt,
+      });
+      setSignedPsbt(authorized.psbtBase64);
+      haptic.success();
+    } catch (caught) {
+      setError(messageOf(caught));
+      haptic.error();
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function pasteSigned() {
     const text = await Clipboard.getStringAsync();
     setSignedPsbt(text.trim());
@@ -297,11 +332,10 @@ export default function SignetPsbtScreen() {
         <View style={styles.noticeCard}>
           <MaterialIcons name="key-off" size={20} color={cores.aviso} />
           <View style={styles.flex}>
-            <Text style={styles.noticeTitle}>Esta tela não assina</Text>
+            <Text style={styles.noticeTitle}>Esta tela não guarda chave</Text>
             <Text style={styles.noticeText}>
-              Ela monta a transação, você assina em outro lugar, e ela revisa e transmite. Nenhuma chave
-              privada passa por aqui — a ADR-0001 proíbe manuseio de chave no runtime JavaScript, e o guard
-              de fronteira impede que isso mude por acidente.
+              Ela monta a transação, pede assinatura ao cofre nativo ou a um assinador externo, e revisa o
+              que voltou. Nenhuma chave privada passa pelo JavaScript.
             </Text>
           </View>
         </View>
@@ -451,6 +485,16 @@ export default function SignetPsbtScreen() {
             >
               <MaterialIcons name="content-copy" size={18} color={cores.acaoSecundariaTexto} />
               <Text style={styles.secondaryButtonText}>Copiar PSBT</Text>
+            </Pressable>
+
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => void signWithNativeVault()}
+              disabled={busy}
+              android_ripple={{ color: cores.ondulacaoEscura }}
+              style={[styles.button, busy && styles.buttonDisabled]}
+            >
+              {busy ? <ActivityIndicator color={cores.acaoPrimariaTexto} /> : <Text style={styles.buttonText}>Assinar no cofre nativo</Text>}
             </Pressable>
 
             <View style={styles.inputGroup}>

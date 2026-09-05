@@ -20,6 +20,7 @@ function WalletNavigator() {
       <Stack.Screen name="dev/signet-watch" options={{ title: "Observar endereço Signet", ...OPCOES_LAB }} />
       <Stack.Screen name="dev/signet-psbt" options={{ title: "Enviar em Signet", ...OPCOES_LAB }} />
       <Stack.Screen name="dev/signet-node-balance" options={{ title: "Saldo pelo meu nó", ...OPCOES_LAB }} />
+      <Stack.Screen name="dev/signet-vault" options={{ title: "Cofre Signet", ...OPCOES_LAB }} />
     </Stack>
   );
 }

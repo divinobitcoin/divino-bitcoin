@@ -5,7 +5,11 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { cores } from "@/constants/palette";
 import { useWallet } from "@/lib/wallet-context";
-import DivinoNativeVaultModule from "@/modules/divino-native-vault/src/DivinoNativeVaultModule";
+import {
+  assertSecretExportUnavailable,
+  getCapabilities,
+  isNativeVaultAvailable,
+} from "@/modules/divino-native-vault/src";
 import { SIGNET_NETWORK } from "@/shared/bitcoin-network";
 import { LIGHTNING_PROVIDER_PLANS, type LightningProviderKind } from "@/shared/lightning";
 
@@ -80,7 +84,7 @@ export default function AndroidSettingsTab() {
   }
 
   async function testNativeVaultIntegration() {
-    if (!DivinoNativeVaultModule) {
+    if (!isNativeVaultAvailable()) {
       Alert.alert(
         "Development build necessário",
         "O Expo Go não inclui o módulo local do cofre. Instale o development build Android e abra-o com o servidor de desenvolvimento para executar este diagnóstico.",
@@ -88,27 +92,28 @@ export default function AndroidSettingsTab() {
       return;
     }
 
-    const capabilities = await DivinoNativeVaultModule.getCapabilitiesAsync();
+    const capabilities = await getCapabilities();
     const expectedBoundary =
-      capabilities.status === "skeleton" &&
+      (capabilities.status === "unprovisioned" || capabilities.status === "provisioned") &&
+      capabilities.network === "signet" &&
       capabilities.requiresDevelopmentBuild &&
       capabilities.usesNativeBoundary &&
-      !capabilities.supportsSecretProvisioning &&
-      !capabilities.supportsSigning;
+      capabilities.supportsSecretProvisioning &&
+      capabilities.supportsSigning;
 
     if (!expectedBoundary) {
-      Alert.alert("Contrato inesperado", "O development build retornou capacidades não autorizadas. Não prossiga com testes de cofre.");
+      Alert.alert("Contrato inesperado", "O development build retornou capacidades fora do contrato Signet. Não prossiga.");
       return;
     }
 
     try {
-      await DivinoNativeVaultModule.assertOperationUnavailableAsync("diagnóstico público de integração");
-      Alert.alert("Bloqueio ausente", "A operação indisponível não foi bloqueada. Não prossiga com testes de cofre.");
-    } catch {
+      await assertSecretExportUnavailable("getSeed");
       Alert.alert(
-        "Cofre nativo integrado",
-        "O módulo Kotlin respondeu no development build e bloqueou a operação de teste como previsto. Nenhuma seed, chave, assinatura ou dado de cofre foi criado, lido ou gravado.",
+        "Cofre Signet integrado",
+        `O módulo nativo respondeu (${capabilities.status}) e recusou getSeed. Experimental, não auditado. Nenhuma seed cruzou o JavaScript.`,
       );
+    } catch {
+      Alert.alert("Bloqueio ausente", "A leitura de seed deveria ter sido recusada e não foi. Não prossiga.");
     }
   }
 
@@ -182,7 +187,7 @@ export default function AndroidSettingsTab() {
             </View>
             <View style={styles.flex}>
               <Text style={styles.settingTitle}>Diagnóstico do cofre nativo</Text>
-              <Text style={styles.settingDescription}>Confirma a ponte Kotlin e o bloqueio explícito de operações, sem seed, chave, assinatura, backup ou rede.</Text>
+              <Text style={styles.settingDescription}>Confirma a ponte Kotlin, o contrato Signet e a recusa de leitura de seed.</Text>
               <Text accessibilityRole="button" onPress={() => void testNativeVaultIntegration()} style={styles.textAction}>TESTAR INTEGRAÇÃO →</Text>
             </View>
           </View>
@@ -190,6 +195,19 @@ export default function AndroidSettingsTab() {
 
         <Text style={styles.sectionLabel}>REDE SIGNET (TESTE)</Text>
         <View style={styles.group}>
+          <View style={styles.actionRow}>
+            <View style={[styles.iconBox, styles.vaultIcon]}>
+              <MaterialIcons name="shield" size={21} color={cores.sucesso} />
+            </View>
+            <View style={styles.flex}>
+              <Text style={styles.settingTitle}>Cofre Signet</Text>
+              <Text style={styles.settingDescription}>
+                Gera ou importa uma frase de teste na tela nativa, devolve descritor público e assina PSBT. A mnemonic
+                não cruza o JavaScript. Experimental, não auditado, material descartável.
+              </Text>
+              <Text accessibilityRole="button" onPress={() => router.push("/dev/signet-vault")} style={styles.textAction}>ABRIR →</Text>
+            </View>
+          </View>
           <View style={styles.actionRow}>
             <View style={styles.iconBox}>
               <MaterialIcons name="travel-explore" size={21} color={cores.acaoSecundariaTexto} />

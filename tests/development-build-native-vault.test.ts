@@ -49,6 +49,7 @@ describe("integração do development build do cofre", () => {
 
     expect(kotlinModule).toContain("private fun rejectUnavailableOperation(operation: String): Unit");
     expect(kotlinModule).toContain("return@AsyncFunction rejectUnavailableOperation(operation)");
+    expect(kotlinModule).toContain("AsyncFunction(\"provisionSignetProfile\")");
     expect(kotlinModule).not.toContain("AsyncFunction(\"assertOperationUnavailableAsync\") { operation: String ->\n      throw");
   });
 });
