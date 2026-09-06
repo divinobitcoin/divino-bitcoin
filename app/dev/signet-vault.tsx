@@ -1,6 +1,6 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import * as Clipboard from "expo-clipboard";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { CampoTexto } from "@/components/campo-texto";
@@ -202,20 +202,35 @@ export default function SignetVaultScreen() {
 }
 
 function CopyBlock({ label, value }: { label: string; value: string }) {
+  const [copied, setCopied] = useState(false);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, []);
+
+  async function copyPublic() {
+    await Clipboard.setStringAsync(value);
+    haptic.light();
+    setCopied(true);
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    timeoutRef.current = setTimeout(() => setCopied(false), 2000);
+  }
+
   return (
     <Pressable
       accessibilityRole="button"
-      onPress={() => {
-        void Clipboard.setStringAsync(value);
-        haptic.light();
-      }}
+      accessibilityLabel={copied ? `${label} copiado` : `Copiar ${label}`}
+      onPress={() => void copyPublic()}
       style={styles.copyCard}
     >
       <Text style={styles.label}>{label}</Text>
       <Text selectable style={styles.mono}>
         {value}
       </Text>
-      <Text style={styles.copyHint}>TOCAR PARA COPIAR</Text>
+      <Text style={[styles.copyHint, copied && styles.copyHintDone]}>{copied ? "COPIADO" : "TOCAR PARA COPIAR"}</Text>
     </Pressable>
   );
 }
@@ -278,6 +293,7 @@ const styles = StyleSheet.create({
   copyCard: { backgroundColor: cores.superficie, borderColor: cores.borda, borderRadius: 14, borderWidth: 1, padding: 12 },
   mono: { color: cores.textoPrimario, fontFamily: "monospace", fontSize: 12, lineHeight: 18, marginTop: 6 },
   copyHint: { color: cores.acaoSecundariaTexto, fontSize: 10, fontWeight: "800", letterSpacing: 0.4, marginTop: 8 },
+  copyHintDone: { color: cores.sucesso },
   dangerButton: { alignItems: "center", borderColor: cores.perigo, borderRadius: 14, borderWidth: 1, minHeight: 48, justifyContent: "center" },
   dangerText: { color: cores.perigo, fontSize: 14, fontWeight: "800" },
   error: { color: cores.perigo, fontSize: 13, lineHeight: 18 },
