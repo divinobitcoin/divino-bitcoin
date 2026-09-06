@@ -61,7 +61,7 @@ class SignetMnemonicRevealActivity : AppCompatActivity() {
       setResult(Activity.RESULT_CANCELED, data)
       finish()
     }
-    // Quiz errou ou voltou à lista: as 12 ficam na RAM. O próximo quiz sorteia de novo.
+    // Quiz errou ou voltou: as 12 ficam na RAM. O próximo quiz é outra Activity.
   }
 
   private fun cancelReveal() {

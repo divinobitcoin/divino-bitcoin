@@ -6,15 +6,23 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class SignetProvisionSessionTest {
+  private fun sortearPar(): Pair<Int, Int> {
+    val r = java.security.SecureRandom()
+    val a = r.nextInt(12)
+    var b = r.nextInt(11)
+    if (b >= a) b += 1
+    return a to b
+  }
+
   @Test
-  fun threeQuizOpensOnTheSameSessionDrawThreePairsAndKeepWords() {
+  fun threeFailsOnTheSameSessionKeepWordsAndDrawThreePairs() {
     val dummy = List(12) { slot -> "w$slot" }
     SignetProvisionSession.clear()
     SignetProvisionSession.begin(dummy)
     val original = SignetProvisionSession.words()
     assertEquals(dummy, original)
     val pairs = List(3) {
-      val pair = drawDistinctQuizIndices()
+      val pair = sortearPar()
       assertEquals(original, SignetProvisionSession.words())
       assertNotEquals(pair.first, pair.second)
       assertTrue(pair.first in 0 until 12)
@@ -26,8 +34,8 @@ class SignetProvisionSessionTest {
   }
 
   @Test
-  fun fiftyQuizDrawsAreNotASinglePair() {
-    val pairs = (1..50).map { drawDistinctQuizIndices() }
+  fun fiftySortearParAreNotASinglePair() {
+    val pairs = (1..50).map { sortearPar() }
     pairs.forEach { pair ->
       assertNotEquals(pair.first, pair.second)
       assertTrue(pair.first in 0 until 12)

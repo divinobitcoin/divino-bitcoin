@@ -8,12 +8,19 @@ import androidx.appcompat.app.AppCompatActivity
 import java.util.concurrent.Executors
 
 /**
- * Quiz sem a lista visível. Sorteia 2 índices em onCreate, cada abertura.
- * Erro volta à revelação com as mesmas 12 em RAM. Persistência só depois
- * de acertar.
+ * Quiz sem a lista visível. Sorteia o par em onCreate, cada Activity nova.
+ * Erro volta à revelação com as mesmas 12 em RAM. Persistência só se acertar.
  */
 class SignetMnemonicQuizActivity : AppCompatActivity() {
   private val worker = Executors.newSingleThreadExecutor()
+
+  fun sortearPar(): Pair<Int, Int> {
+    val r = java.security.SecureRandom()
+    val a = r.nextInt(12)
+    var b = r.nextInt(11)
+    if (b >= a) b += 1
+    return a to b
+  }
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
@@ -32,8 +39,8 @@ class SignetMnemonicQuizActivity : AppCompatActivity() {
       return
     }
 
-    val pair = drawDistinctQuizIndices()
-    setContentView(buildQuiz(words, pair.first, pair.second))
+    val par = sortearPar()
+    setContentView(buildQuiz(words, par.first, par.second))
   }
 
   override fun onDestroy() {
@@ -75,7 +82,10 @@ class SignetMnemonicQuizActivity : AppCompatActivity() {
           "Não confere. Volte ao papel e anote de novo.",
           Toast.LENGTH_LONG,
         ).show()
-        setResult(Activity.RESULT_CANCELED)
+        startActivity(
+          Intent(this@SignetMnemonicQuizActivity, SignetMnemonicRevealActivity::class.java)
+            .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP),
+        )
         finish()
         return@setOnClickListener
       }

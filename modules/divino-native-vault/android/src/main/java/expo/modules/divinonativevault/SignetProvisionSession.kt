@@ -5,9 +5,6 @@ package expo.modules.divinonativevault
  * Não vão para extras de Activity, SharedPreferences, disco, Bundle
  * (onSaveInstanceState) nem a bridge. Se o processo morrer, os campos
  * voltam vazios — o envelope ainda não existe.
- *
- * Não guarda o par do quiz. Os índices sorteiam-se cada vez que a tela
- * do quiz abre.
  */
 internal object SignetProvisionSession {
   @Volatile
