@@ -3,16 +3,19 @@
     <activity
       android:name=".SignetMnemonicRevealActivity"
       android:exported="false"
+      android:screenOrientation="portrait"
       android:theme="@style/Theme.AppCompat.NoActionBar"
       android:windowSoftInputMode="adjustResize" />
     <activity
       android:name=".SignetMnemonicQuizActivity"
       android:exported="false"
+      android:screenOrientation="portrait"
       android:theme="@style/Theme.AppCompat.NoActionBar"
       android:windowSoftInputMode="adjustResize" />
     <activity
       android:name=".SignetMnemonicImportActivity"
       android:exported="false"
+      android:screenOrientation="portrait"
       android:theme="@style/Theme.AppCompat.NoActionBar"
       android:windowSoftInputMode="adjustResize" />
   </application>

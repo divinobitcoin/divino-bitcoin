@@ -15,6 +15,7 @@ import java.util.concurrent.Executors
 class DivinoNativeVaultModule : Module() {
   private val worker = Executors.newSingleThreadExecutor()
   private var provisionPromise: Promise? = null
+  private var provisionMode: String? = null
 
   private val store: SignetVaultStore
     get() {
@@ -78,6 +79,8 @@ class DivinoNativeVaultModule : Module() {
         return@AsyncFunction
       }
       provisionPromise = promise
+      provisionMode = mode
+      SignetProvisionSession.clear()
       val target = if (mode == "generate") {
         SignetMnemonicRevealActivity::class.java
       } else {
@@ -137,10 +140,36 @@ class DivinoNativeVaultModule : Module() {
         return@OnActivityResult
       }
       val pending = provisionPromise ?: return@OnActivityResult
+      val mode = provisionMode
       provisionPromise = null
+      provisionMode = null
       if (payload.resultCode != Activity.RESULT_OK) {
         SignetProvisionSession.clear()
-        pending.reject("VAULT_CANCELLED", "Provisionamento cancelado.", null)
+        val reason = payload.data?.getStringExtra(SignetMnemonicRevealActivity.EXTRA_CANCEL_REASON)
+        when (reason) {
+          SignetMnemonicRevealActivity.CANCEL_BACK -> {
+            val message = if (mode == "import") {
+              "Você cancelou a importação. Nada foi guardado."
+            } else {
+              "Você voltou na revelação. Nada foi guardado."
+            }
+            pending.reject("VAULT_CANCELLED", message, null)
+          }
+          SignetMnemonicRevealActivity.CANCEL_PERSIST ->
+            pending.reject("VAULT_PERSIST", "O Keystore recusou gravar o envelope. Nada foi guardado.", null)
+          SignetMnemonicRevealActivity.CANCEL_EMPTY_SESSION, null ->
+            pending.reject(
+              "VAULT_CANCELLED",
+              "A sessão em memória esvaziou. O envelope ainda não existe.",
+              null,
+            )
+          else ->
+            pending.reject(
+              "VAULT_CANCELLED",
+              "A sessão em memória esvaziou. O envelope ainda não existe.",
+              null,
+            )
+        }
         return@OnActivityResult
       }
       val extras = payload.data?.extras
@@ -148,6 +177,10 @@ class DivinoNativeVaultModule : Module() {
       val fingerprint = extras?.getString(SignetMnemonicRevealActivity.EXTRA_FINGERPRINT)
       if (profileId.isNullOrEmpty() || fingerprint.isNullOrEmpty()) {
         pending.reject("VAULT_REFUSED", "O cofre não devolveu um handle público.", null)
+        return@OnActivityResult
+      }
+      if ("-" in fingerprint) {
+        pending.reject("VAULT_REFUSED", "Descritor ou fingerprint com sinal. Recusando.", null)
         return@OnActivityResult
       }
       pending.resolve(

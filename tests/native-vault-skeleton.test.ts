@@ -190,4 +190,133 @@ describe("contrato do cofre nativo Signet", () => {
     expect(store).toContain("AndroidKeyStore");
     expect(store).not.toMatch(/getSharedPreferences|EncryptedSharedPreferences|expo-secure-store/);
   });
+
+  it("fingerprint é 8 hex minúsculos sem sinal; recusa descritor com hífen", () => {
+    const crypto = readFileSync(
+      resolve(
+        import.meta.dirname,
+        "../modules/divino-native-vault/android/src/main/java/expo/modules/divinonativevault/SignetVaultCrypto.kt",
+      ),
+      "utf8",
+    );
+    const iosKey = readFileSync(
+      resolve(import.meta.dirname, "../modules/divino-native-vault/ios/SignetHDKey.swift"),
+      "utf8",
+    );
+    const iosCrypto = readFileSync(
+      resolve(import.meta.dirname, "../modules/divino-native-vault/ios/SignetVaultCrypto.swift"),
+      "utf8",
+    );
+
+    expect(crypto).toContain("toUInt()");
+    expect(crypto).toContain("%08x");
+    expect(crypto).toContain("assertUnsignedPublicMaterial");
+    expect(crypto).not.toMatch(/fingerprint\(\)\s*\.toString\(16\)/);
+    expect(crypto).not.toMatch(/toInt\(\)\s*\.toString\(16\)/);
+    expect(iosKey).toContain("%08x");
+    expect(iosCrypto).toContain("assertUnsignedPublicMaterial");
+    expect(iosCrypto).toContain(".contains(\"-\")");
+
+    const signedHighBit = -0x7e867d99;
+    expect(signedHighBit.toString(16)).toBe("-7e867d99");
+    const unsigned = (signedHighBit >>> 0).toString(16).padStart(8, "0");
+    expect(unsigned).toBe("81798267");
+    expect(unsigned).toMatch(/^[0-9a-f]{8}$/);
+    expect(unsigned).not.toContain("-");
+    expect((0x7e867d99 >>> 0).toString(16).padStart(8, "0")).toBe("7e867d99");
+  });
+
+  it("importação BIP-39 guarda rascunho só em RAM e trava retrato", () => {
+    const importSource = readFileSync(
+      resolve(
+        import.meta.dirname,
+        "../modules/divino-native-vault/android/src/main/java/expo/modules/divinonativevault/SignetMnemonicImportActivity.kt",
+      ),
+      "utf8",
+    );
+    const session = readFileSync(
+      resolve(
+        import.meta.dirname,
+        "../modules/divino-native-vault/android/src/main/java/expo/modules/divinonativevault/SignetProvisionSession.kt",
+      ),
+      "utf8",
+    );
+    const chrome = readFileSync(
+      resolve(
+        import.meta.dirname,
+        "../modules/divino-native-vault/android/src/main/java/expo/modules/divinonativevault/SignetNativeChrome.kt",
+      ),
+      "utf8",
+    );
+    const manifest = readFileSync(
+      resolve(import.meta.dirname, "../modules/divino-native-vault/android/src/main/AndroidManifest.xml"),
+      "utf8",
+    );
+    const reveal = readFileSync(
+      resolve(
+        import.meta.dirname,
+        "../modules/divino-native-vault/android/src/main/java/expo/modules/divinonativevault/SignetMnemonicRevealActivity.kt",
+      ),
+      "utf8",
+    );
+    const quiz = readFileSync(
+      resolve(
+        import.meta.dirname,
+        "../modules/divino-native-vault/android/src/main/java/expo/modules/divinonativevault/SignetMnemonicQuizActivity.kt",
+      ),
+      "utf8",
+    );
+
+    expect(session).toContain("replaceDraft");
+    expect(session).not.toMatch(/getSharedPreferences|EncryptedSharedPreferences|putExtra\(/);
+    expect(importSource).toContain("replaceDraft");
+    expect(importSource).toContain("restoreDraft");
+    expect(importSource).not.toMatch(/outState\.put/);
+    expect(importSource).not.toContain("putExtra(\"words\"");
+    expect(importSource).not.toMatch(/getSharedPreferences/);
+    expect(chrome).toContain("SCREEN_ORIENTATION_PORTRAIT");
+    expect(chrome).toContain("FLAG_SECURE");
+    expect(manifest.match(/android:screenOrientation="portrait"/g)?.length).toBe(3);
+    expect(reveal).toContain("isSaveEnabled = false");
+    expect(quiz).toContain("beginQuiz");
+  });
+
+  it("RESULT_CANCELED distingue voltar, sessão vazia e falha de persistência, sem palavras", () => {
+    expect(kotlinSource).not.toMatch(/pending\.reject\("VAULT_CANCELLED", "Provisionamento cancelado\."/);
+    expect(kotlinSource).toContain("Você voltou na revelação. Nada foi guardado.");
+    expect(kotlinSource).toContain("A sessão em memória esvaziou. O envelope ainda não existe.");
+    expect(kotlinSource).toContain("O Keystore recusou gravar o envelope. Nada foi guardado.");
+    expect(kotlinSource).toContain("CANCEL_BACK");
+    expect(kotlinSource).toContain("CANCEL_EMPTY_SESSION");
+    expect(kotlinSource).toContain("CANCEL_PERSIST");
+    expect(swiftSource).not.toContain("Provisionamento cancelado.");
+    expect(swiftSource).not.toMatch(/reject\([^)]*words/);
+    expect(kotlinSource).not.toMatch(/reject\([^)]*words/);
+    const iosReveal = readFileSync(
+      resolve(import.meta.dirname, "../modules/divino-native-vault/ios/SignetMnemonicRevealViewController.swift"),
+      "utf8",
+    );
+    const iosQuiz = readFileSync(
+      resolve(import.meta.dirname, "../modules/divino-native-vault/ios/SignetMnemonicQuizViewController.swift"),
+      "utf8",
+    );
+    expect(iosReveal).toContain("Você voltou na revelação. Nada foi guardado.");
+    expect(iosReveal).toContain("A sessão em memória esvaziou. O envelope ainda não existe.");
+    expect(iosQuiz).toContain("VAULT_PERSIST");
+    expect(iosReveal).not.toContain("Provisionamento cancelado.");
+  });
+
+  it("copiar material público mostra Copiado ~2s e nunca toast do valor", () => {
+    const vaultScreen = readFileSync(
+      resolve(import.meta.dirname, "../app/dev/signet-vault.tsx"),
+      "utf8",
+    );
+    expect(vaultScreen).toContain("Copiado");
+    expect(vaultScreen).not.toContain("COPIADO");
+    expect(vaultScreen).toContain("2000");
+    expect(vaultScreen).toContain("Clipboard.setStringAsync(value)");
+    expect(vaultScreen).not.toMatch(/Alert\.alert\([^)]*value/);
+    expect(vaultScreen).not.toMatch(/Toast/);
+    expect(vaultScreen).not.toMatch(/mnemonic/i);
+  });
 });

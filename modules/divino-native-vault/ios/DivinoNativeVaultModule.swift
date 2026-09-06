@@ -37,6 +37,7 @@ public class DivinoNativeVaultModule: Module {
           promise.reject("VAULT_UNAVAILABLE", "Sem tela nativa. Use o development build.")
           return
         }
+        SignetProvisionSession.clear()
         let controller: UIViewController
         if mode == "import" {
           let importController = SignetMnemonicViewController()

@@ -2,14 +2,20 @@ import UIKit
 
 final class SignetMnemonicQuizViewController: UIViewController {
   var onSuccess: (([String: String]) -> Void)?
+  var onAbort: ((VaultException) -> Void)?
   private let store = SignetVaultStore()
+
+  override var supportedInterfaceOrientations: UIInterfaceOrientationMask { .portrait }
 
   override func viewDidLoad() {
     super.viewDidLoad()
     view.backgroundColor = UIColor(red: 0.03, green: 0.03, blue: 0.03, alpha: 1)
     isModalInPresentation = true
     guard let words = SignetProvisionSession.words(), words.count >= 2 else {
-      dismiss(animated: true)
+      let error = VaultException(code: "VAULT_CANCELLED", message: "A sessão em memória esvaziou. O envelope ainda não existe.")
+      dismiss(animated: true) { [weak self] in
+        self?.onAbort?(error)
+      }
       return
     }
     let indexA = Int.random(in: 0..<words.count)
@@ -47,7 +53,7 @@ final class SignetMnemonicQuizViewController: UIViewController {
         self.dismiss(animated: true)
         return
       }
-      self.persistAfterQuiz(words, error: error, button: confirm)
+      self.persistAfterQuiz(words, button: confirm)
     }, for: .touchUpInside)
     add(confirm, height: 48)
     let back = button("Voltar à lista")
@@ -60,7 +66,7 @@ final class SignetMnemonicQuizViewController: UIViewController {
     scroll.contentSize = CGSize(width: view.bounds.width, height: y + 40)
   }
 
-  private func persistAfterQuiz(_ words: [String], error: UILabel, button: UIButton) {
+  private func persistAfterQuiz(_ words: [String], button: UIButton) {
     button.isEnabled = false
     DispatchQueue.global(qos: .userInitiated).async {
       do {
@@ -73,8 +79,10 @@ final class SignetMnemonicQuizViewController: UIViewController {
         }
       } catch {
         DispatchQueue.main.async {
-          button.isEnabled = true
-          error.text = (error as? VaultException)?.message ?? "O cofre recusou o provisionamento."
+          let failure = VaultException(code: "VAULT_PERSIST", message: "O Keychain recusou gravar o envelope. Nada foi guardado.")
+          self.dismiss(animated: true) {
+            self.onAbort?(failure)
+          }
         }
       }
     }

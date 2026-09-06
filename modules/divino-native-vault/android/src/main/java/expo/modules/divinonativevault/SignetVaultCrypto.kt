@@ -79,11 +79,14 @@ object SignetVaultCrypto {
       val origin = "[$fingerprint/84h/1h/0h]"
       val receive0 = account.derivePrivateKey(0L).derivePrivateKey(0L)
       val address = Bitcoin.computeP2WpkhAddress(receive0.publicKey, Block.SignetGenesisBlock.hash)
+      val receiveDescriptor = "wpkh($origin$tpub/0/*)"
+      val changeDescriptor = "wpkh($origin$tpub/1/*)"
+      assertUnsignedPublicMaterial(fingerprint, receiveDescriptor, changeDescriptor)
       return PublicMaterial(
         masterFingerprint = fingerprint,
         accountXpub = tpub,
-        receiveDescriptor = "wpkh($origin$tpub/0/*)",
-        changeDescriptor = "wpkh($origin$tpub/1/*)",
+        receiveDescriptor = receiveDescriptor,
+        changeDescriptor = changeDescriptor,
         receiveAddress0 = address,
       )
     } finally {
@@ -239,8 +242,34 @@ object SignetVaultCrypto {
     }
   }
 
+  /**
+   * 8 hex minúsculos sem sinal. bitcoin-kmp devolve Long com sinal
+   * (int32LE + toLong). Nunca Int.toString(16): no bit alto vira
+   * "-7e867d99". Sempre toUInt / %08x.
+   */
   fun fingerprintHex(master: DeterministicWallet.ExtendedPrivateKey): String {
-    return master.fingerprint().toString(16).padStart(8, '0')
+    return fingerprintHex(master.fingerprint())
+  }
+
+  fun fingerprintHex(raw: Long): String {
+    val hex = java.lang.String.format(java.util.Locale.ROOT, "%08x", raw.toUInt().toInt())
+    if ("-" in hex || hex.length != 8 || hex.any { it !in '0'..'9' && it !in 'a'..'f' }) {
+      throw VaultException("VAULT_REFUSED", "Fingerprint inválida.")
+    }
+    return hex
+  }
+
+  fun assertUnsignedPublicMaterial(
+    fingerprint: String,
+    receiveDescriptor: String,
+    changeDescriptor: String,
+  ) {
+    if ("-" in fingerprint || "-" in receiveDescriptor || "-" in changeDescriptor) {
+      throw VaultException("VAULT_REFUSED", "Descritor ou fingerprint com sinal. Recusando.")
+    }
+    if (fingerprint.length != 8 || fingerprint.any { it !in '0'..'9' && it !in 'a'..'f' }) {
+      throw VaultException("VAULT_REFUSED", "Fingerprint inválida.")
+    }
   }
 
   private fun <L, R> Either<L, R>.getOrElse(onLeft: (L) -> Nothing): R {

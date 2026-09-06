@@ -21,15 +21,31 @@ class SignetMnemonicQuizActivity : AppCompatActivity() {
 
     val words = SignetProvisionSession.words()
     if (words == null || words.size < 2) {
-      setResult(Activity.RESULT_CANCELED)
+      setResult(
+        Activity.RESULT_CANCELED,
+        Intent().putExtra(
+          SignetMnemonicRevealActivity.EXTRA_CANCEL_REASON,
+          SignetMnemonicRevealActivity.CANCEL_EMPTY_SESSION,
+        ),
+      )
       finish()
       return
     }
 
-    val indexA = Random.nextInt(words.size)
-    var indexB = Random.nextInt(words.size)
-    if (indexB == indexA) {
-      indexB = (indexA + 1 + Random.nextInt(words.size - 1)) % words.size
+    val pair = SignetProvisionSession.quizPair()
+    val indexA: Int
+    val indexB: Int
+    if (pair != null) {
+      indexA = pair.first
+      indexB = pair.second
+    } else {
+      indexA = Random.nextInt(words.size)
+      var next = Random.nextInt(words.size)
+      if (next == indexA) {
+        next = (indexA + 1 + Random.nextInt(words.size - 1)) % words.size
+      }
+      indexB = next
+      SignetProvisionSession.beginQuiz(indexA, indexB)
     }
 
     setContentView(buildQuiz(words, indexA, indexB))
@@ -78,7 +94,7 @@ class SignetMnemonicQuizActivity : AppCompatActivity() {
         finish()
         return@setOnClickListener
       }
-      persistAfterQuiz(words, confirm, error)
+      persistAfterQuiz(words, confirm)
     }
     column.addView(confirm)
 
@@ -95,7 +111,6 @@ class SignetMnemonicQuizActivity : AppCompatActivity() {
   private fun persistAfterQuiz(
     words: List<String>,
     confirm: android.widget.Button,
-    error: android.widget.TextView,
   ) {
     confirm.isEnabled = false
     worker.execute {
@@ -110,10 +125,16 @@ class SignetMnemonicQuizActivity : AppCompatActivity() {
           setResult(Activity.RESULT_OK, data)
           finish()
         }
-      } catch (failure: Exception) {
+      } catch (_: Exception) {
         runOnUiThread {
-          confirm.isEnabled = true
-          error.text = if (failure is VaultException) failure.message else "O cofre recusou o provisionamento."
+          setResult(
+            Activity.RESULT_CANCELED,
+            Intent().putExtra(
+              SignetMnemonicRevealActivity.EXTRA_CANCEL_REASON,
+              SignetMnemonicRevealActivity.CANCEL_PERSIST,
+            ),
+          )
+          finish()
         }
       }
     }

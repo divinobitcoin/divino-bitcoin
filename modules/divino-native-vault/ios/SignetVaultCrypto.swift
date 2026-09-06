@@ -70,11 +70,18 @@ enum SignetVaultCrypto {
     let receive0 = try account.derive("m/0/0")
     let address = try bech32Address(publicKey: receive0.publicKey)
     let origin = "[\(fingerprint)/84h/1h/0h]"
+    let receiveDescriptor = "wpkh(\(origin)\(tpub)/0/*)"
+    let changeDescriptor = "wpkh(\(origin)\(tpub)/1/*)"
+    try assertUnsignedPublicMaterial(
+      fingerprint: fingerprint,
+      receiveDescriptor: receiveDescriptor,
+      changeDescriptor: changeDescriptor,
+    )
     return PublicMaterial(
       masterFingerprint: fingerprint,
       accountXpub: tpub,
-      receiveDescriptor: "wpkh(\(origin)\(tpub)/0/*)",
-      changeDescriptor: "wpkh(\(origin)\(tpub)/1/*)",
+      receiveDescriptor: receiveDescriptor,
+      changeDescriptor: changeDescriptor,
       receiveAddress0: address,
     )
   }
@@ -211,5 +218,19 @@ enum SignetVaultCrypto {
       }
     }
     return bytes
+  }
+
+  static func assertUnsignedPublicMaterial(
+    fingerprint: String,
+    receiveDescriptor: String,
+    changeDescriptor: String,
+  ) throws {
+    if fingerprint.contains("-") || receiveDescriptor.contains("-") || changeDescriptor.contains("-") {
+      throw VaultException(code: "VAULT_REFUSED", message: "Descritor ou fingerprint com sinal. Recusando.")
+    }
+    let hex = CharacterSet(charactersIn: "0123456789abcdef")
+    if fingerprint.count != 8 || fingerprint.unicodeScalars.contains(where: { !hex.contains($0) }) {
+      throw VaultException(code: "VAULT_REFUSED", message: "Fingerprint inválida.")
+    }
   }
 }

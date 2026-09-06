@@ -3,6 +3,8 @@ import UIKit
 final class SignetMnemonicRevealViewController: UIViewController {
   var onFinish: ((Result<[String: String], Error>) -> Void)?
 
+  override var supportedInterfaceOrientations: UIInterfaceOrientationMask { .portrait }
+
   override func viewDidLoad() {
     super.viewDidLoad()
     view.backgroundColor = UIColor(red: 0.03, green: 0.03, blue: 0.03, alpha: 1)
@@ -16,7 +18,7 @@ final class SignetMnemonicRevealViewController: UIViewController {
       }
     }
     guard let words = SignetProvisionSession.words() else {
-      fail(VaultException(code: "VAULT_REFUSED", message: "Sem frase em curso."))
+      fail(VaultException(code: "VAULT_CANCELLED", message: "A sessão em memória esvaziou. O envelope ainda não existe."))
       return
     }
     buildReveal(words)
@@ -50,7 +52,7 @@ final class SignetMnemonicRevealViewController: UIViewController {
     cancel.addAction(UIAction { [weak self] _ in
       SignetProvisionSession.clear()
       self?.dismiss(animated: true) {
-        self?.onFinish?(.failure(VaultException(code: "VAULT_CANCELLED", message: "Provisionamento cancelado.")))
+        self?.onFinish?(.failure(VaultException(code: "VAULT_CANCELLED", message: "Você voltou na revelação. Nada foi guardado.")))
       }
     }, for: .touchUpInside)
     add(cancel, height: 48)
@@ -62,6 +64,12 @@ final class SignetMnemonicRevealViewController: UIViewController {
     quiz.onSuccess = { [weak self] stored in
       self?.dismiss(animated: true) {
         self?.onFinish?(.success(stored))
+      }
+    }
+    quiz.onAbort = { [weak self] error in
+      SignetProvisionSession.clear()
+      self?.dismiss(animated: true) {
+        self?.onFinish?(.failure(error))
       }
     }
     present(quiz, animated: true)

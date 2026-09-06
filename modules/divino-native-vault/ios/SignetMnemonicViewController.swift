@@ -3,12 +3,16 @@ import UIKit
 final class SignetMnemonicViewController: UIViewController {
   var onFinish: ((Result<[String: String], Error>) -> Void)?
   private let store = SignetVaultStore()
+  private var fields: [UITextField] = []
+
+  override var supportedInterfaceOrientations: UIInterfaceOrientationMask { .portrait }
 
   override func viewDidLoad() {
     super.viewDidLoad()
     view.backgroundColor = UIColor(red: 0.03, green: 0.03, blue: 0.03, alpha: 1)
     isModalInPresentation = true
     buildImport()
+    restoreDraft()
   }
 
   private func buildImport() {
@@ -23,8 +27,11 @@ final class SignetMnemonicViewController: UIViewController {
     add(label("SIGNET · MATERIAL DESCARTÁVEL", size: 11, color: UIColor(red: 0.95, green: 0.66, blue: 0, alpha: 1), bold: true), height: 18)
     add(label("Importar do papel", size: 28, color: UIColor(red: 0.98, green: 0.95, blue: 0.87, alpha: 1), bold: true), height: 36)
     add(label("Experimental, não auditado. Digite as 12 palavras na ordem, sem passphrase. Checksum BIP-39 inválido recusa e não guarda nada.", size: 14, color: UIColor(white: 0.66, alpha: 1), bold: false), height: 80)
-    let fields = (0..<12).map { field("\($0 + 1)") }
-    fields.forEach { add($0, height: 40) }
+    fields = (0..<12).map { field("\($0 + 1)") }
+    fields.forEach { textField in
+      textField.addTarget(self, action: #selector(draftChanged), for: .editingChanged)
+      add(textField, height: 40)
+    }
     let error = label("", size: 13, color: UIColor(red: 0.97, green: 0.44, blue: 0.44, alpha: 1), bold: false)
     add(error, height: 40)
     let save = button("Importar para o cofre")
@@ -38,7 +45,7 @@ final class SignetMnemonicViewController: UIViewController {
       }
       do {
         try SignetVaultCrypto.validateMnemonic(typed)
-        self.persist(typed, error: error, button: save)
+        self.persist(typed, button: save)
       } catch {
         error.text = "Frase BIP-39 inválida."
       }
@@ -48,19 +55,32 @@ final class SignetMnemonicViewController: UIViewController {
     cancel.backgroundColor = UIColor(white: 0.12, alpha: 1)
     cancel.setTitleColor(UIColor(red: 0.98, green: 0.95, blue: 0.87, alpha: 1), for: .normal)
     cancel.addAction(UIAction { [weak self] _ in
+      SignetProvisionSession.clear()
       self?.dismiss(animated: true) {
-        self?.onFinish?(.failure(VaultException(code: "VAULT_CANCELLED", message: "Provisionamento cancelado.")))
+        self?.onFinish?(.failure(VaultException(code: "VAULT_CANCELLED", message: "Você cancelou a importação. Nada foi guardado.")))
       }
     }, for: .touchUpInside)
     add(cancel, height: 48)
     scroll.contentSize = CGSize(width: view.bounds.width, height: y + 40)
   }
 
-  private func persist(_ words: [String], error: UILabel, button: UIButton) {
+  @objc private func draftChanged() {
+    SignetProvisionSession.replaceDraft(fields.map { $0.text ?? "" })
+  }
+
+  private func restoreDraft() {
+    guard let draft = SignetProvisionSession.words(), draft.count == 12 else { return }
+    for (index, field) in fields.enumerated() where (field.text ?? "").isEmpty && !draft[index].isEmpty {
+      field.text = draft[index]
+    }
+  }
+
+  private func persist(_ words: [String], button: UIButton) {
     button.isEnabled = false
     DispatchQueue.global(qos: .userInitiated).async {
       do {
         let stored = try self.store.persistNewProfile(words: words)
+        SignetProvisionSession.clear()
         DispatchQueue.main.async {
           self.dismiss(animated: true) {
             self.onFinish?(.success(stored))
@@ -68,8 +88,9 @@ final class SignetMnemonicViewController: UIViewController {
         }
       } catch {
         DispatchQueue.main.async {
-          button.isEnabled = true
-          error.text = "O cofre recusou o provisionamento."
+          self.dismiss(animated: true) {
+            self.onFinish?(.failure(VaultException(code: "VAULT_PERSIST", message: "O Keychain recusou gravar o envelope. Nada foi guardado.")))
+          }
         }
       }
     }

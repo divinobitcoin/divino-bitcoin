@@ -3,22 +3,37 @@ package expo.modules.divinonativevault
 import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
 import android.view.inputmethod.EditorInfo
 import android.widget.EditText
+import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import java.util.concurrent.Executors
 
 /**
  * Restauração BIP-39 do papel. Doze campos nativos, checksum, mesmo envelope
- * do gerar. As palavras não cruzam a bridge e não entram na mensagem de erro.
+ * do gerar. As palavras não cruzam a bridge, não entram na mensagem de erro
+ * e não vão para Bundle, extras, SharedPreferences nem disco. Rascunho só
+ * em RAM (SignetProvisionSession). Processo morto = campos vazios.
  */
 class SignetMnemonicImportActivity : AppCompatActivity() {
   private val worker = Executors.newSingleThreadExecutor()
+  private lateinit var fields: List<EditText>
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
     with(SignetNativeChrome) { lockScreen() }
     setContentView(buildImportUi())
+    restoreDraft()
+    onBackPressedDispatcher.addCallback(
+      this,
+      object : OnBackPressedCallback(true) {
+        override fun handleOnBackPressed() {
+          cancelImport()
+        }
+      },
+    )
   }
 
   override fun onDestroy() {
@@ -27,7 +42,7 @@ class SignetMnemonicImportActivity : AppCompatActivity() {
   }
 
   override fun onSaveInstanceState(outState: Bundle) {
-    // Não serializar os campos. A frase fica só nos EditText em memória.
+    super.onSaveInstanceState(outState)
   }
 
   private fun buildImportUi() = with(SignetNativeChrome) {
@@ -42,9 +57,12 @@ class SignetMnemonicImportActivity : AppCompatActivity() {
       ),
     )
 
-    val fields = (0 until 12).map { index -> wordField("${index + 1}") }
+    fields = (0 until 12).map { index -> wordField("${index + 1}") }
     fields.last().imeOptions = EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING or EditorInfo.IME_ACTION_DONE
-    fields.forEach { column.addView(it) }
+    fields.forEach { field ->
+      field.addTextChangedListener(DraftWatcher())
+      column.addView(field)
+    }
 
     val error = errorView()
     column.addView(error)
@@ -63,18 +81,40 @@ class SignetMnemonicImportActivity : AppCompatActivity() {
         error.text = "Frase BIP-39 inválida."
         return@setOnClickListener
       }
-      persist(typed, save, error)
+      persist(typed, save)
     }
     column.addView(save)
 
     val cancel = secondaryButton("Cancelar")
-    cancel.setOnClickListener {
-      setResult(Activity.RESULT_CANCELED)
-      finish()
-    }
+    cancel.setOnClickListener { cancelImport() }
     column.addView(cancel)
     root.addView(column)
     root
+  }
+
+  private fun restoreDraft() {
+    val draft = SignetProvisionSession.words() ?: return
+    if (draft.size != 12) return
+    fields.forEachIndexed { index, field ->
+      val word = draft[index]
+      if (field.text.isEmpty() && word.isNotEmpty()) {
+        field.setText(word)
+      }
+    }
+  }
+
+  private fun captureDraft() {
+    if (!::fields.isInitialized) return
+    SignetProvisionSession.replaceDraft(fields.map { it.text.toString() })
+  }
+
+  private fun cancelImport() {
+    SignetProvisionSession.clear()
+    setResult(
+      Activity.RESULT_CANCELED,
+      Intent().putExtra(SignetMnemonicRevealActivity.EXTRA_CANCEL_REASON, SignetMnemonicRevealActivity.CANCEL_BACK),
+    )
+    finish()
   }
 
   private fun readTwelve(fields: List<EditText>): List<String>? {
@@ -86,12 +126,12 @@ class SignetMnemonicImportActivity : AppCompatActivity() {
   private fun persist(
     words: List<String>,
     save: android.widget.Button,
-    error: android.widget.TextView,
   ) {
     save.isEnabled = false
     worker.execute {
       try {
         val stored = SignetVaultStore(applicationContext).persistNewProfile(words)
+        SignetProvisionSession.clear()
         runOnUiThread {
           val data = Intent().apply {
             putExtra(SignetMnemonicRevealActivity.EXTRA_PROFILE_ID, stored.profileId)
@@ -102,10 +142,24 @@ class SignetMnemonicImportActivity : AppCompatActivity() {
         }
       } catch (_: Exception) {
         runOnUiThread {
-          save.isEnabled = true
-          error.text = "O cofre recusou o provisionamento."
+          setResult(
+            Activity.RESULT_CANCELED,
+            Intent().putExtra(
+              SignetMnemonicRevealActivity.EXTRA_CANCEL_REASON,
+              SignetMnemonicRevealActivity.CANCEL_PERSIST,
+            ),
+          )
+          finish()
         }
       }
+    }
+  }
+
+  private inner class DraftWatcher : TextWatcher {
+    override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
+    override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = Unit
+    override fun afterTextChanged(s: Editable?) {
+      captureDraft()
     }
   }
 }

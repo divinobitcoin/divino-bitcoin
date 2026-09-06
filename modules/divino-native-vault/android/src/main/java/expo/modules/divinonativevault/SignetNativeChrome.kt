@@ -1,5 +1,6 @@
 package expo.modules.divinonativevault
 
+import android.content.pm.ActivityInfo
 import android.graphics.Typeface
 import android.os.Build
 import android.text.InputFilter
@@ -25,6 +26,7 @@ internal object SignetNativeChrome {
   const val PERIGO = 0xFFF87171.toInt()
 
   fun AppCompatActivity.lockScreen() {
+    requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
     window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
       window.decorView.importantForAutofill = View.IMPORTANT_FOR_AUTOFILL_NO_EXCLUDE_DESCENDANTS

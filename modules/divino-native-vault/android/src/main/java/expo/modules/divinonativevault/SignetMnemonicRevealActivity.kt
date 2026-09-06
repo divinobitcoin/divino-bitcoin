@@ -8,11 +8,12 @@ import android.view.View
 import android.widget.GridLayout
 import android.widget.LinearLayout
 import android.widget.TextView
+import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 
 /**
  * Só revela as 12 palavras. Não persiste, não devolve fingerprint, não copia.
- * O envelope só nasce se o quiz passar.
+ * O envelope só nasce se o quiz passar. Palavras só na RAM da sessão.
  */
 class SignetMnemonicRevealActivity : AppCompatActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
@@ -24,11 +25,22 @@ class SignetMnemonicRevealActivity : AppCompatActivity() {
     }
     val words = SignetProvisionSession.words()
     if (words == null) {
-      setResult(Activity.RESULT_CANCELED)
+      setResult(
+        Activity.RESULT_CANCELED,
+        Intent().putExtra(EXTRA_CANCEL_REASON, CANCEL_EMPTY_SESSION),
+      )
       finish()
       return
     }
     setContentView(buildReveal(words))
+    onBackPressedDispatcher.addCallback(
+      this,
+      object : OnBackPressedCallback(true) {
+        override fun handleOnBackPressed() {
+          cancelReveal()
+        }
+      },
+    )
   }
 
   override fun onSaveInstanceState(outState: Bundle) {
@@ -42,8 +54,20 @@ class SignetMnemonicRevealActivity : AppCompatActivity() {
     if (resultCode == Activity.RESULT_OK && data != null) {
       setResult(Activity.RESULT_OK, data)
       finish()
+      return
     }
-    // Quiz falhou ou voltou: a revelação permanece, as palavras continuam na RAM.
+    val reason = data?.getStringExtra(EXTRA_CANCEL_REASON)
+    if (reason == CANCEL_EMPTY_SESSION || reason == CANCEL_PERSIST) {
+      setResult(Activity.RESULT_CANCELED, data)
+      finish()
+    }
+    // Quiz errou ou voltou à lista: a revelação permanece, as palavras continuam na RAM.
+  }
+
+  private fun cancelReveal() {
+    SignetProvisionSession.clear()
+    setResult(Activity.RESULT_CANCELED, Intent().putExtra(EXTRA_CANCEL_REASON, CANCEL_BACK))
+    finish()
   }
 
   private fun buildReveal(words: List<String>): View {
@@ -82,11 +106,7 @@ class SignetMnemonicRevealActivity : AppCompatActivity() {
       column.addView(wrote)
 
       val cancel = secondaryButton("Cancelar")
-      cancel.setOnClickListener {
-        SignetProvisionSession.clear()
-        setResult(Activity.RESULT_CANCELED)
-        finish()
-      }
+      cancel.setOnClickListener { cancelReveal() }
       column.addView(cancel)
       root.addView(column)
       return root
@@ -99,6 +119,7 @@ class SignetMnemonicRevealActivity : AppCompatActivity() {
     textSize = 16f
     setTypeface(Typeface.MONOSPACE)
     setTextIsSelectable(false)
+    isSaveEnabled = false
     setPadding(
       with(SignetNativeChrome) { dp(10) },
       with(SignetNativeChrome) { dp(10) },
@@ -120,5 +141,9 @@ class SignetMnemonicRevealActivity : AppCompatActivity() {
     const val REQUEST_QUIZ = 0xD1B1
     const val EXTRA_PROFILE_ID = "profileId"
     const val EXTRA_FINGERPRINT = "masterFingerprint"
+    const val EXTRA_CANCEL_REASON = "cancelReason"
+    const val CANCEL_BACK = "back"
+    const val CANCEL_EMPTY_SESSION = "empty_session"
+    const val CANCEL_PERSIST = "persist"
   }
 }

@@ -230,7 +230,7 @@ function CopyBlock({ label, value }: { label: string; value: string }) {
       <Text selectable style={styles.mono}>
         {value}
       </Text>
-      <Text style={[styles.copyHint, copied && styles.copyHintDone]}>{copied ? "COPIADO" : "TOCAR PARA COPIAR"}</Text>
+      <Text style={[styles.copyHint, copied && styles.copyHintDone]}>{copied ? "Copiado" : "Copiar"}</Text>
     </Pressable>
   );
 }

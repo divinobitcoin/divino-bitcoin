@@ -56,7 +56,7 @@ class SignetVaultStore(private val context: Context) {
       throw VaultException("VAULT_NOT_PROVISIONED", "Perfil ausente.")
     }
     val json = JSONObject(file.readText())
-    return StoredPublic(
+    val stored = StoredPublic(
       profileId = json.getString("profileId"),
       masterFingerprint = json.getString("masterFingerprint"),
       accountXpub = json.getString("accountXpub"),
@@ -64,6 +64,12 @@ class SignetVaultStore(private val context: Context) {
       changeDescriptor = json.getString("changeDescriptor"),
       receiveAddress0 = json.getString("receiveAddress0"),
     )
+    SignetVaultCrypto.assertUnsignedPublicMaterial(
+      stored.masterFingerprint,
+      stored.receiveDescriptor,
+      stored.changeDescriptor,
+    )
+    return stored
   }
 
   fun persistNewProfile(words: List<String>): StoredPublic {

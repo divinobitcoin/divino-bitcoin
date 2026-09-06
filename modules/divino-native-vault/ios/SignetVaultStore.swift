@@ -22,6 +22,11 @@ final class SignetVaultStore {
     else {
       throw VaultException(code: "VAULT_NOT_PROVISIONED", message: "Perfil ausente.")
     }
+    try SignetVaultCrypto.assertUnsignedPublicMaterial(
+      fingerprint: json["masterFingerprint"] ?? "",
+      receiveDescriptor: json["receiveDescriptor"] ?? "",
+      changeDescriptor: json["changeDescriptor"] ?? "",
+    )
     return json
   }
 

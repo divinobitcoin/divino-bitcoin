@@ -7,6 +7,10 @@ enum SignetProvisionSession {
     pendingWords = words
   }
 
+  static func replaceDraft(_ words: [String]) {
+    pendingWords = words
+  }
+
   static func words() -> [String]? {
     pendingWords
   }
