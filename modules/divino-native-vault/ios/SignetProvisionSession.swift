@@ -9,9 +9,13 @@ enum SignetProvisionSession {
 
   static func begin(_ words: [String]) {
     pendingWords = words
-    let pair = drawDistinctQuizIndices()
-    quizIndexA = pair.0
-    quizIndexB = pair.1
+    if let pair = drawDistinctQuizIndices() {
+      quizIndexA = pair.0
+      quizIndexB = pair.1
+    } else {
+      quizIndexA = nil
+      quizIndexB = nil
+    }
   }
 
   static func replaceDraft(_ words: [String]) {
@@ -30,9 +34,11 @@ enum SignetProvisionSession {
     return (first, second)
   }
 
-  static func drawDistinctQuizIndices() -> (Int, Int) {
-    let first = secureInt(quizBound)
-    var second = secureInt(quizBound - 1)
+  private static func drawDistinctQuizIndices() -> (Int, Int)? {
+    guard let first = uniformIndex(quizBound),
+          var second = uniformIndex(quizBound - 1) else {
+      return nil
+    }
     if second >= first {
       second += 1
     }
@@ -45,14 +51,19 @@ enum SignetProvisionSession {
     quizIndexB = nil
   }
 
-  private static func secureInt(_ bound: Int) -> Int {
-    var bytes: UInt32 = 0
-    let status = withUnsafeMutableBytes(of: &bytes) { raw in
-      SecRandomCopyBytes(kSecRandomDefault, 4, raw.baseAddress!)
+  private static func uniformIndex(_ bound: Int) -> Int? {
+    let limit = UInt32.max - (UInt32.max % UInt32(bound))
+    var bytes = [UInt8](repeating: 0, count: 4)
+    for _ in 0..<32 {
+      let status = bytes.withUnsafeMutableBytes { raw in
+        SecRandomCopyBytes(kSecRandomDefault, 4, raw.baseAddress!)
+      }
+      guard status == errSecSuccess else { return nil }
+      let unsigned = bytes.reduce(UInt32(0)) { ($0 << 8) | UInt32($1) }
+      if unsigned < limit {
+        return Int(unsigned % UInt32(bound))
+      }
     }
-    if status != errSecSuccess {
-      return Int.random(in: 0..<bound)
-    }
-    return Int(bytes % UInt32(bound))
+    return nil
   }
 }

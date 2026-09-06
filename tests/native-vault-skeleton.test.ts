@@ -314,20 +314,32 @@ describe("contrato do cofre nativo Signet", () => {
 
     expect(session).toContain("SecureRandom");
     expect(session).toContain("drawDistinctQuizIndices");
-    expect(session).toMatch(/nextInt\(\s*QUIZ_BOUND\s*\)/);
+    expect(session).toContain("nextBytes");
+    expect(session).toContain("fun begin(");
+    expect(session).not.toContain("nextInt");
     expect(session).toContain("second >= first");
     expect(session).not.toMatch(/Random\(\s*\d+\s*\)/);
     expect(session).not.toContain("beginQuiz");
     expect(quiz).not.toContain("kotlin.random.Random");
     expect(quiz).not.toMatch(/Random\.nextInt/);
     expect(quiz).toContain("quizPair");
+    expect(quiz).toContain("indexA + 1");
     expect(quiz).toContain("RESULT_CANCELED");
     expect(quiz).not.toMatch(/persistNewProfile[\s\S]*typedA/);
     expect(store).not.toContain("quizIndex");
     expect(iosSession).toContain("drawDistinctQuizIndices");
     expect(iosSession).toContain("SecRandomCopyBytes");
+    expect(iosSession).not.toContain("Int.random");
     expect(iosQuiz).toContain("quizPair");
     expect(iosQuiz).not.toMatch(/Int\.random\(in:/);
+
+    const quizNative = [session, quiz, iosSession, iosQuiz].join("\n");
+    expect(quizNative).not.toMatch(
+      /\b(listOf|Pair|arrayOf)\(\s*(1\s*,\s*7|7\s*,\s*1|3\s*,\s*4|4\s*,\s*3)\s*\)/,
+    );
+    expect(quizNative).not.toMatch(/\bquizIndex[AB]\s*=\s*(1|3|4|7)\b/);
+    expect(quizNative).not.toMatch(/\bindex[AB]\s*=\s*(1|3|4|7)\b/);
+    expect(quizNative).not.toMatch(/Palavra\s+(1|3|4|7)\b/);
 
     function pairFromDraw(first: number, secondRaw: number): [number, number] {
       let second = secondRaw;
