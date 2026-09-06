@@ -11,7 +11,7 @@ O JavaScript pode chamar:
 | `authorizeSigningIntent` | PSBT assinada (sem chave) |
 | `deleteProfile` | ok / erro |
 
-Na criação, duas telas nativas: revelação das 12 palavras, depois quiz de dois índices sem a lista visível. O envelope só é gravado se o quiz passar. Experimental, não auditado, material descartável, valor econômico zero.
+Na criação, duas telas nativas: revelação das 12 palavras, depois quiz de dois índices sem a lista visível. O envelope só é gravado se o quiz passar. A importação restaura as 12 palavras do papel na tela nativa, com checksum BIP-39; frase inválida é recusada sem vazar as palavras. Experimental, não auditado, material descartável, valor econômico zero.
 
 Android: AES-256-GCM no Keystore, ciphertext em `getNoBackupFilesDir()`, cripto BIP-39/32/84/PSBT via bitcoin-kmp (ACINQ). iOS: Keychain `ThisDeviceOnly`.
 

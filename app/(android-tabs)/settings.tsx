@@ -202,7 +202,7 @@ export default function AndroidSettingsTab() {
             <View style={styles.flex}>
               <Text style={styles.settingTitle}>Cofre Signet</Text>
               <Text style={styles.settingDescription}>
-                Gera ou importa uma frase de teste na tela nativa, devolve descritor público e assina PSBT. A mnemonic
+                Gera ou importa uma frase Signet na tela nativa, devolve descritor público e assina PSBT. A mnemonic
                 não cruza o JavaScript. Experimental, não auditado, material descartável.
               </Text>
               <Text accessibilityRole="button" onPress={() => router.push("/dev/signet-vault")} style={styles.textAction}>ABRIR →</Text>

@@ -21,21 +21,26 @@ final class SignetMnemonicViewController: UIViewController {
       y += height + 10
     }
     add(label("SIGNET · MATERIAL DESCARTÁVEL", size: 11, color: UIColor(red: 0.95, green: 0.66, blue: 0, alpha: 1), bold: true), height: 18)
-    add(label("Importar frase de teste", size: 28, color: UIColor(red: 0.98, green: 0.95, blue: 0.87, alpha: 1), bold: true), height: 36)
-    add(label("Experimental, não auditado. Digite uma frase descartável. Nunca importe uma seed com valor.", size: 14, color: UIColor(white: 0.66, alpha: 1), bold: false), height: 70)
-    let fields = (0..<24).map { field("\($0 + 1)") }
+    add(label("Importar do papel", size: 28, color: UIColor(red: 0.98, green: 0.95, blue: 0.87, alpha: 1), bold: true), height: 36)
+    add(label("Experimental, não auditado. Digite as 12 palavras na ordem, sem passphrase. Checksum BIP-39 inválido recusa e não guarda nada.", size: 14, color: UIColor(white: 0.66, alpha: 1), bold: false), height: 80)
+    let fields = (0..<12).map { field("\($0 + 1)") }
     fields.forEach { add($0, height: 40) }
     let error = label("", size: 13, color: UIColor(red: 0.97, green: 0.44, blue: 0.44, alpha: 1), bold: false)
     add(error, height: 40)
     let save = button("Importar para o cofre")
     save.addAction(UIAction { [weak self] _ in
       guard let self else { return }
-      let typed = fields.map { $0.text?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() ?? "" }.filter { !$0.isEmpty }
+      error.text = ""
+      let typed = fields.map { $0.text?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() ?? "" }
+      if typed.contains(where: \.isEmpty) {
+        error.text = "Preencha as 12 palavras."
+        return
+      }
       do {
         try SignetVaultCrypto.validateMnemonic(typed)
         self.persist(typed, error: error, button: save)
-      } catch let failure {
-        error.text = (failure as? VaultException)?.message ?? "Frase inválida."
+      } catch {
+        error.text = "Frase BIP-39 inválida."
       }
     }, for: .touchUpInside)
     add(save, height: 48)
@@ -64,7 +69,7 @@ final class SignetMnemonicViewController: UIViewController {
       } catch {
         DispatchQueue.main.async {
           button.isEnabled = true
-          error.text = (error as? VaultException)?.message ?? "O cofre recusou o provisionamento."
+          error.text = "O cofre recusou o provisionamento."
         }
       }
     }
@@ -96,6 +101,7 @@ final class SignetMnemonicViewController: UIViewController {
     field.autocapitalizationType = .none
     field.spellCheckingType = .no
     field.textContentType = .none
+    field.isSecureTextEntry = false
     return field
   }
 

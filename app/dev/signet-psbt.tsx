@@ -220,7 +220,7 @@ export default function SignetPsbtScreen() {
     try {
       const capabilities = await getCapabilities();
       if (!capabilities.profileId) {
-        setError("O cofre Signet ainda não tem perfil. Abra Cofre Signet em Ajustes e gere uma frase de teste.");
+        setError("O cofre Signet ainda não tem perfil. Abra Cofre Signet em Ajustes e gere ou importe a frase.");
         haptic.error();
         return;
       }

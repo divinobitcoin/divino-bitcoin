@@ -11,7 +11,7 @@
       android:theme="@style/Theme.AppCompat.NoActionBar"
       android:windowSoftInputMode="adjustResize" />
     <activity
-      android:name=".SignetMnemonicActivity"
+      android:name=".SignetMnemonicImportActivity"
       android:exported="false"
       android:theme="@style/Theme.AppCompat.NoActionBar"
       android:windowSoftInputMode="adjustResize" />

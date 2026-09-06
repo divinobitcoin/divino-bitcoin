@@ -142,6 +142,42 @@ describe("contrato do cofre nativo Signet", () => {
     expect(kotlinSource).not.toMatch(/\b(fun|func|AsyncFunction)\s+["']?getSeed/);
   });
 
+  it("importa BIP-39 do papel em 12 campos nativos, com checksum, sem vazar a frase", () => {
+    const importSource = readFileSync(
+      resolve(
+        import.meta.dirname,
+        "../modules/divino-native-vault/android/src/main/java/expo/modules/divinonativevault/SignetMnemonicImportActivity.kt",
+      ),
+      "utf8",
+    );
+    const crypto = readFileSync(
+      resolve(
+        import.meta.dirname,
+        "../modules/divino-native-vault/android/src/main/java/expo/modules/divinonativevault/SignetVaultCrypto.kt",
+      ),
+      "utf8",
+    );
+    const manifest = readFileSync(
+      resolve(import.meta.dirname, "../modules/divino-native-vault/android/src/main/AndroidManifest.xml"),
+      "utf8",
+    );
+
+    expect(manifest).toContain("SignetMnemonicImportActivity");
+    expect(kotlinSource).toContain("SignetMnemonicImportActivity");
+    expect(importSource).toContain("0 until 12");
+    expect(importSource).not.toContain("0 until 24");
+    expect(importSource).toContain("lockScreen");
+    expect(importSource).toContain("persistNewProfile");
+    expect(importSource).toContain("validateMnemonic");
+    expect(importSource).toContain("Frase BIP-39 inválida.");
+    expect(importSource).not.toMatch(/error\.text\s*=\s*(typed|words)/);
+    expect(importSource).not.toContain("putExtra(\"words\"");
+    expect(importSource).not.toMatch(/\b(fun|func|AsyncFunction)\s+["']?getSeed/);
+    expect(importSource).not.toMatch(/\breadMnemonic\b/);
+    expect(crypto).toContain("MnemonicCode.validate");
+    expect(crypto).toContain("words.size != 12");
+  });
+
   it("o envelope Android não usa SharedPreferences nem SecureStore", () => {
     const store = readFileSync(
       resolve(

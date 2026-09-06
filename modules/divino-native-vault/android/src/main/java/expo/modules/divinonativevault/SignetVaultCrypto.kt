@@ -55,12 +55,12 @@ object SignetVaultCrypto {
   }
 
   fun validateMnemonic(words: List<String>) {
-    if (words.size != 12 && words.size != 24) {
-      throw VaultException("VAULT_REFUSED", "A frase precisa ter 12 ou 24 palavras.")
+    if (words.size != 12) {
+      throw VaultException("VAULT_REFUSED", "A frase precisa ter 12 palavras.")
     }
     try {
       MnemonicCode.validate(words)
-    } catch (error: Exception) {
+    } catch (_: Exception) {
       throw VaultException("VAULT_REFUSED", "Frase BIP-39 inválida.")
     }
   }

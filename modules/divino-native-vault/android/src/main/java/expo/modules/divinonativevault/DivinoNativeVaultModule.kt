@@ -81,7 +81,7 @@ class DivinoNativeVaultModule : Module() {
       val target = if (mode == "generate") {
         SignetMnemonicRevealActivity::class.java
       } else {
-        SignetMnemonicActivity::class.java
+        SignetMnemonicImportActivity::class.java
       }
       activity.startActivityForResult(Intent(activity, target), SignetMnemonicRevealActivity.REQUEST_PROVISION)
     }

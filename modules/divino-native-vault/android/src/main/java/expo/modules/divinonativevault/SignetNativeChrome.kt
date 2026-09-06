@@ -96,6 +96,7 @@ internal object SignetNativeChrome {
     imeOptions = EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING or EditorInfo.IME_ACTION_NEXT
     filters = arrayOf(InputFilter.LengthFilter(16))
     isSingleLine = true
+    isSaveEnabled = false
     importantForAutofill = View.IMPORTANT_FOR_AUTOFILL_NO
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
       setAutofillHints()

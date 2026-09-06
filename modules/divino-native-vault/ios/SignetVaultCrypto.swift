@@ -32,8 +32,8 @@ enum SignetVaultCrypto {
   }
 
   static func validateMnemonic(_ words: [String]) throws {
-    if words.count != 12 && words.count != 24 {
-      throw VaultException(code: "VAULT_REFUSED", message: "A frase precisa ter 12 ou 24 palavras.")
+    if words.count != 12 {
+      throw VaultException(code: "VAULT_REFUSED", message: "A frase precisa ter 12 palavras.")
     }
     let map = Dictionary(uniqueKeysWithValues: englishWordlist.enumerated().map { ($1, $0) })
     var bits: [Bool] = []

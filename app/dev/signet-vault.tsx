@@ -124,7 +124,7 @@ export default function SignetVaultScreen() {
               onPress={() => void run(async () => { await provisionSignetProfile("import"); await reload(); })}
               style={[styles.buttonSecondary, busy && styles.buttonDisabled]}
             >
-              <Text style={styles.buttonSecondaryText}>Importar frase de teste</Text>
+              <Text style={styles.buttonSecondaryText}>Importar do papel</Text>
             </Pressable>
           </View>
         )}
