@@ -278,10 +278,10 @@ describe("contrato do cofre nativo Signet", () => {
     expect(chrome).toContain("FLAG_SECURE");
     expect(manifest.match(/android:screenOrientation="portrait"/g)?.length).toBe(3);
     expect(reveal).toContain("isSaveEnabled = false");
-    expect(quiz).toContain("quizPair");
+    expect(quiz).toContain("drawDistinctQuizIndices");
   });
 
-  it("o quiz sorteia 2 índices distintos em 0..11 ao gerar, só em RAM", () => {
+  it("o quiz sorteia 2 índices distintos em 0..11 a cada abertura, sem guardar o par", () => {
     const session = readFileSync(
       resolve(
         import.meta.dirname,
@@ -293,6 +293,13 @@ describe("contrato do cofre nativo Signet", () => {
       resolve(
         import.meta.dirname,
         "../modules/divino-native-vault/android/src/main/java/expo/modules/divinonativevault/SignetMnemonicQuizActivity.kt",
+      ),
+      "utf8",
+    );
+    const draw = readFileSync(
+      resolve(
+        import.meta.dirname,
+        "../modules/divino-native-vault/android/src/main/java/expo/modules/divinonativevault/SignetQuizDraw.kt",
       ),
       "utf8",
     );
@@ -312,34 +319,38 @@ describe("contrato do cofre nativo Signet", () => {
       "utf8",
     );
 
-    expect(session).toContain("SecureRandom");
-    expect(session).toContain("drawDistinctQuizIndices");
-    expect(session).toContain("nextBytes");
     expect(session).toContain("fun begin(");
-    expect(session).not.toContain("nextInt");
-    expect(session).toContain("second >= first");
-    expect(session).not.toMatch(/Random\(\s*\d+\s*\)/);
-    expect(session).not.toContain("beginQuiz");
-    expect(quiz).not.toContain("kotlin.random.Random");
-    expect(quiz).not.toMatch(/Random\.nextInt/);
-    expect(quiz).toContain("quizPair");
+    expect(session).not.toContain("quizIndex");
+    expect(session).not.toContain("quizPair");
+    expect(session).not.toContain("reshuffleQuiz");
+    expect(session).not.toContain("lastQuiz");
+    expect(session).not.toContain("SecureRandom");
+    expect(draw).toContain("SecureRandom");
+    expect(draw).toContain("nextBytes");
+    expect(draw).not.toContain("nextInt");
+    expect(draw).not.toMatch(/Random\(\s*\d+\s*\)/);
+    expect(quiz).toContain("drawDistinctQuizIndices");
+    expect(quiz).toContain("override fun onCreate");
     expect(quiz).toContain("indexA + 1");
     expect(quiz).toContain("RESULT_CANCELED");
-    expect(quiz).toContain("reshuffleQuiz");
+    expect(quiz).not.toContain("reshuffleQuiz");
+    expect(quiz).not.toContain("quizPair");
+    expect(quiz).not.toContain("lastQuiz");
     expect(quiz).not.toContain("generateMnemonic");
     expect(quiz).not.toContain("SignetProvisionSession.begin");
-    expect(session).toContain("fun reshuffleQuiz");
-    expect(iosSession).toContain("reshuffleQuiz");
-    expect(iosQuiz).toContain("reshuffleQuiz");
     expect(quiz).not.toMatch(/persistNewProfile[\s\S]*typedA/);
     expect(store).not.toContain("quizIndex");
-    expect(iosSession).toContain("drawDistinctQuizIndices");
-    expect(iosSession).toContain("SecRandomCopyBytes");
-    expect(iosSession).not.toContain("Int.random");
-    expect(iosQuiz).toContain("quizPair");
+    expect(iosSession).not.toContain("quizIndex");
+    expect(iosSession).not.toContain("quizPair");
+    expect(iosSession).not.toContain("reshuffleQuiz");
+    expect(iosQuiz).toContain("drawDistinctQuizIndices");
+    expect(iosQuiz).toContain("viewDidLoad");
+    expect(iosQuiz).toContain("SecRandomCopyBytes");
+    expect(iosQuiz).not.toContain("reshuffleQuiz");
+    expect(iosQuiz).not.toContain("quizPair");
     expect(iosQuiz).not.toMatch(/Int\.random\(in:/);
 
-    const quizNative = [session, quiz, iosSession, iosQuiz].join("\n");
+    const quizNative = [session, quiz, draw, iosSession, iosQuiz].join("\n");
     expect(quizNative).not.toMatch(
       /\b(listOf|Pair|arrayOf)\(\s*(1\s*,\s*7|7\s*,\s*1|3\s*,\s*4|4\s*,\s*3)\s*\)/,
     );

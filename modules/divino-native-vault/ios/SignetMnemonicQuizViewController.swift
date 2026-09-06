@@ -1,4 +1,5 @@
 import UIKit
+import Security
 
 final class SignetMnemonicQuizViewController: UIViewController {
   var onSuccess: (([String: String]) -> Void)?
@@ -12,7 +13,7 @@ final class SignetMnemonicQuizViewController: UIViewController {
     view.backgroundColor = UIColor(red: 0.03, green: 0.03, blue: 0.03, alpha: 1)
     isModalInPresentation = true
     guard let words = SignetProvisionSession.words(), words.count == 12,
-          let pair = SignetProvisionSession.quizPair() else {
+          let pair = drawDistinctQuizIndices() else {
       let error = VaultException(code: "VAULT_CANCELLED", message: "A sessão em memória esvaziou. O envelope ainda não existe.")
       dismiss(animated: true) { [weak self] in
         self?.onAbort?(error)
@@ -20,6 +21,34 @@ final class SignetMnemonicQuizViewController: UIViewController {
       return
     }
     buildQuiz(words: words, indexA: pair.0, indexB: pair.1)
+  }
+
+  private func drawDistinctQuizIndices() -> (Int, Int)? {
+    let bound = 12
+    guard let first = uniformQuizIndex(bound),
+          var second = uniformQuizIndex(bound - 1) else {
+      return nil
+    }
+    if second >= first {
+      second += 1
+    }
+    return (first, second)
+  }
+
+  private func uniformQuizIndex(_ bound: Int) -> Int? {
+    let limit = UInt32.max - (UInt32.max % UInt32(bound))
+    var bytes = [UInt8](repeating: 0, count: 4)
+    for _ in 0..<32 {
+      let status = bytes.withUnsafeMutableBytes { raw in
+        SecRandomCopyBytes(kSecRandomDefault, 4, raw.baseAddress!)
+      }
+      guard status == errSecSuccess else { return nil }
+      let unsigned = bytes.reduce(UInt32(0)) { ($0 << 8) | UInt32($1) }
+      if unsigned < limit {
+        return Int(unsigned % UInt32(bound))
+      }
+    }
+    return nil
   }
 
   private func buildQuiz(words: [String], indexA: Int, indexB: Int) {
@@ -46,7 +75,6 @@ final class SignetMnemonicQuizViewController: UIViewController {
       let typedA = fieldA.text?.trimmingCharacters(in: .whitespaces).lowercased() ?? ""
       let typedB = fieldB.text?.trimmingCharacters(in: .whitespaces).lowercased() ?? ""
       if typedA != words[indexA] || typedB != words[indexB] {
-        SignetProvisionSession.reshuffleQuiz()
         self.dismiss(animated: true)
         return
       }
