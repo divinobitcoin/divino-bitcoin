@@ -8,8 +8,9 @@ import java.security.SecureRandom
  * (onSaveInstanceState) nem a bridge. Se o processo morrer, os campos
  * voltam vazios — o envelope ainda não existe.
  *
- * Os dois índices do quiz nascem em begin(), quando a mnemonic nasce:
- * distintos, em 0..11, via SecureRandom.nextBytes. Não entram no envelope.
+ * Os dois índices do quiz nascem em begin(), quando a mnemonic nasce, e
+ * de novo em reshuffleQuiz() se o quiz falhar — a mnemonic não muda.
+ * Distintos, em 0..11, via SecureRandom.nextBytes. Não entram no envelope.
  */
 internal object SignetProvisionSession {
   private const val QUIZ_BOUND = 12
@@ -32,6 +33,14 @@ internal object SignetProvisionSession {
 
   fun replaceDraft(words: List<String>) {
     pendingWords = words.toList()
+  }
+
+  fun reshuffleQuiz() {
+    val current = pendingWords
+    if (current == null || current.size != QUIZ_BOUND) return
+    val pair = drawDistinctQuizIndices()
+    quizIndexA = pair.first
+    quizIndexB = pair.second
   }
 
   fun words(): List<String>? = pendingWords

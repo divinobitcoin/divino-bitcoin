@@ -61,7 +61,7 @@ class SignetMnemonicRevealActivity : AppCompatActivity() {
       setResult(Activity.RESULT_CANCELED, data)
       finish()
     }
-    // Quiz errou ou voltou à lista: a revelação permanece, as palavras continuam na RAM.
+    // Quiz errou (par novo, mesma mnemonic) ou voltou à lista: a revelação permanece.
   }
 
   private fun cancelReveal() {

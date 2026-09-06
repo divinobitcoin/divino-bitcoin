@@ -325,6 +325,12 @@ describe("contrato do cofre nativo Signet", () => {
     expect(quiz).toContain("quizPair");
     expect(quiz).toContain("indexA + 1");
     expect(quiz).toContain("RESULT_CANCELED");
+    expect(quiz).toContain("reshuffleQuiz");
+    expect(quiz).not.toContain("generateMnemonic");
+    expect(quiz).not.toContain("SignetProvisionSession.begin");
+    expect(session).toContain("fun reshuffleQuiz");
+    expect(iosSession).toContain("reshuffleQuiz");
+    expect(iosQuiz).toContain("reshuffleQuiz");
     expect(quiz).not.toMatch(/persistNewProfile[\s\S]*typedA/);
     expect(store).not.toContain("quizIndex");
     expect(iosSession).toContain("drawDistinctQuizIndices");

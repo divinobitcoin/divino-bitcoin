@@ -8,8 +8,9 @@ import androidx.appcompat.app.AppCompatActivity
 import java.util.concurrent.Executors
 
 /**
- * Quiz sem a lista visível. Os dois índices já foram sorteados na sessão,
- * ao gerar. Erro volta à revelação. Persistência só depois de acertar.
+ * Quiz sem a lista visível. Os dois índices já foram sorteados na sessão.
+ * Erro sorteia um par novo na mesma sessão e volta à revelação — a
+ * mnemonic não muda. Persistência só depois de acertar.
  */
 class SignetMnemonicQuizActivity : AppCompatActivity() {
   private val worker = Executors.newSingleThreadExecutor()
@@ -69,6 +70,7 @@ class SignetMnemonicQuizActivity : AppCompatActivity() {
       val typedA = fieldA.text.toString().trim().lowercase()
       val typedB = fieldB.text.toString().trim().lowercase()
       if (typedA != words[indexA] || typedB != words[indexB]) {
+        SignetProvisionSession.reshuffleQuiz()
         Toast.makeText(
           this@SignetMnemonicQuizActivity,
           "Não confere. Volte ao papel e anote de novo.",

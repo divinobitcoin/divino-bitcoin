@@ -46,6 +46,7 @@ final class SignetMnemonicQuizViewController: UIViewController {
       let typedA = fieldA.text?.trimmingCharacters(in: .whitespaces).lowercased() ?? ""
       let typedB = fieldB.text?.trimmingCharacters(in: .whitespaces).lowercased() ?? ""
       if typedA != words[indexA] || typedB != words[indexB] {
+        SignetProvisionSession.reshuffleQuiz()
         self.dismiss(animated: true)
         return
       }

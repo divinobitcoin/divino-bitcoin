@@ -22,6 +22,12 @@ enum SignetProvisionSession {
     pendingWords = words
   }
 
+  static func reshuffleQuiz() {
+    guard pendingWords?.count == quizBound, let pair = drawDistinctQuizIndices() else { return }
+    quizIndexA = pair.0
+    quizIndexB = pair.1
+  }
+
   static func words() -> [String]? {
     pendingWords
   }
