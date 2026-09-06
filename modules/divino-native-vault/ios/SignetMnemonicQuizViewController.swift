@@ -11,19 +11,15 @@ final class SignetMnemonicQuizViewController: UIViewController {
     super.viewDidLoad()
     view.backgroundColor = UIColor(red: 0.03, green: 0.03, blue: 0.03, alpha: 1)
     isModalInPresentation = true
-    guard let words = SignetProvisionSession.words(), words.count >= 2 else {
+    guard let words = SignetProvisionSession.words(), words.count == 12,
+          let pair = SignetProvisionSession.quizPair() else {
       let error = VaultException(code: "VAULT_CANCELLED", message: "A sessão em memória esvaziou. O envelope ainda não existe.")
       dismiss(animated: true) { [weak self] in
         self?.onAbort?(error)
       }
       return
     }
-    let indexA = Int.random(in: 0..<words.count)
-    var indexB = Int.random(in: 0..<words.count)
-    if indexB == indexA {
-      indexB = (indexA + 1) % words.count
-    }
-    buildQuiz(words: words, indexA: indexA, indexB: indexB)
+    buildQuiz(words: words, indexA: pair.0, indexB: pair.1)
   }
 
   private func buildQuiz(words: [String], indexA: Int, indexB: Int) {

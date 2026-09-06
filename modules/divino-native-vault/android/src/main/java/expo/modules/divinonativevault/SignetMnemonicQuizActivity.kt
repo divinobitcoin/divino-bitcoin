@@ -6,11 +6,10 @@ import android.os.Bundle
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import java.util.concurrent.Executors
-import kotlin.random.Random
 
 /**
- * Quiz sem a lista visível. Dois índices sorteados nesta Activity.
- * Erro volta à revelação. Persistência só depois de acertar.
+ * Quiz sem a lista visível. Os dois índices já foram sorteados na sessão,
+ * ao gerar. Erro volta à revelação. Persistência só depois de acertar.
  */
 class SignetMnemonicQuizActivity : AppCompatActivity() {
   private val worker = Executors.newSingleThreadExecutor()
@@ -20,7 +19,8 @@ class SignetMnemonicQuizActivity : AppCompatActivity() {
     with(SignetNativeChrome) { lockScreen() }
 
     val words = SignetProvisionSession.words()
-    if (words == null || words.size < 2) {
+    val pair = SignetProvisionSession.quizPair()
+    if (words == null || words.size != 12 || pair == null) {
       setResult(
         Activity.RESULT_CANCELED,
         Intent().putExtra(
@@ -32,23 +32,7 @@ class SignetMnemonicQuizActivity : AppCompatActivity() {
       return
     }
 
-    val pair = SignetProvisionSession.quizPair()
-    val indexA: Int
-    val indexB: Int
-    if (pair != null) {
-      indexA = pair.first
-      indexB = pair.second
-    } else {
-      indexA = Random.nextInt(words.size)
-      var next = Random.nextInt(words.size)
-      if (next == indexA) {
-        next = (indexA + 1 + Random.nextInt(words.size - 1)) % words.size
-      }
-      indexB = next
-      SignetProvisionSession.beginQuiz(indexA, indexB)
-    }
-
-    setContentView(buildQuiz(words, indexA, indexB))
+    setContentView(buildQuiz(words, pair.first, pair.second))
   }
 
   override fun onDestroy() {

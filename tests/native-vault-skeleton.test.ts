@@ -278,7 +278,79 @@ describe("contrato do cofre nativo Signet", () => {
     expect(chrome).toContain("FLAG_SECURE");
     expect(manifest.match(/android:screenOrientation="portrait"/g)?.length).toBe(3);
     expect(reveal).toContain("isSaveEnabled = false");
-    expect(quiz).toContain("beginQuiz");
+    expect(quiz).toContain("quizPair");
+  });
+
+  it("o quiz sorteia 2 índices distintos em 0..11 ao gerar, só em RAM", () => {
+    const session = readFileSync(
+      resolve(
+        import.meta.dirname,
+        "../modules/divino-native-vault/android/src/main/java/expo/modules/divinonativevault/SignetProvisionSession.kt",
+      ),
+      "utf8",
+    );
+    const quiz = readFileSync(
+      resolve(
+        import.meta.dirname,
+        "../modules/divino-native-vault/android/src/main/java/expo/modules/divinonativevault/SignetMnemonicQuizActivity.kt",
+      ),
+      "utf8",
+    );
+    const store = readFileSync(
+      resolve(
+        import.meta.dirname,
+        "../modules/divino-native-vault/android/src/main/java/expo/modules/divinonativevault/SignetVaultStore.kt",
+      ),
+      "utf8",
+    );
+    const iosSession = readFileSync(
+      resolve(import.meta.dirname, "../modules/divino-native-vault/ios/SignetProvisionSession.swift"),
+      "utf8",
+    );
+    const iosQuiz = readFileSync(
+      resolve(import.meta.dirname, "../modules/divino-native-vault/ios/SignetMnemonicQuizViewController.swift"),
+      "utf8",
+    );
+
+    expect(session).toContain("SecureRandom");
+    expect(session).toContain("drawDistinctQuizIndices");
+    expect(session).toMatch(/nextInt\(\s*QUIZ_BOUND\s*\)/);
+    expect(session).toContain("second >= first");
+    expect(session).not.toMatch(/Random\(\s*\d+\s*\)/);
+    expect(session).not.toContain("beginQuiz");
+    expect(quiz).not.toContain("kotlin.random.Random");
+    expect(quiz).not.toMatch(/Random\.nextInt/);
+    expect(quiz).toContain("quizPair");
+    expect(quiz).toContain("RESULT_CANCELED");
+    expect(quiz).not.toMatch(/persistNewProfile[\s\S]*typedA/);
+    expect(store).not.toContain("quizIndex");
+    expect(iosSession).toContain("drawDistinctQuizIndices");
+    expect(iosSession).toContain("SecRandomCopyBytes");
+    expect(iosQuiz).toContain("quizPair");
+    expect(iosQuiz).not.toMatch(/Int\.random\(in:/);
+
+    function pairFromDraw(first: number, secondRaw: number): [number, number] {
+      let second = secondRaw;
+      if (second >= first) second += 1;
+      return [first, second];
+    }
+    expect(pairFromDraw(0, 0)).toEqual([0, 1]);
+    expect(pairFromDraw(0, 10)).toEqual([0, 11]);
+    expect(pairFromDraw(5, 5)).toEqual([5, 6]);
+    expect(pairFromDraw(11, 10)).toEqual([11, 10]);
+    const seen = new Set<string>();
+    for (let first = 0; first < 12; first += 1) {
+      for (let secondRaw = 0; secondRaw < 11; secondRaw += 1) {
+        const [a, b] = pairFromDraw(first, secondRaw);
+        expect(a).toBeGreaterThanOrEqual(0);
+        expect(a).toBeLessThan(12);
+        expect(b).toBeGreaterThanOrEqual(0);
+        expect(b).toBeLessThan(12);
+        expect(a).not.toBe(b);
+        seen.add(`${a}:${b}`);
+      }
+    }
+    expect(seen.size).toBe(12 * 11);
   });
 
   it("RESULT_CANCELED distingue voltar, sessão vazia e falha de persistência, sem palavras", () => {
