@@ -50,7 +50,7 @@ export async function getPublicDescriptor(profileId: string): Promise<PublicDesc
   return descriptor;
 }
 
-export async function authorizeSigningIntent(intent: {
+export async function signPsbt(intent: {
   profileId: string;
   network: SignetNetworkId;
   psbtBase64: string;
@@ -62,13 +62,17 @@ export async function authorizeSigningIntent(intent: {
   if (!intent.psbtBase64.trim()) {
     throw new Error("PSBT ausente.");
   }
-  const authorized = await requireVault().authorizeSigningIntent(
-    intent.profileId,
-    intent.network,
-    intent.psbtBase64.trim(),
-  );
+  const authorized = await requireVault().signPsbt(intent.profileId, intent.network, intent.psbtBase64.trim());
   assertSignet(authorized.network);
   return authorized;
+}
+
+export async function authorizeSigningIntent(intent: {
+  profileId: string;
+  network: SignetNetworkId;
+  psbtBase64: string;
+}): Promise<AuthorizedSigningIntent> {
+  return signPsbt(intent);
 }
 
 export async function deleteProfile(profileId: string): Promise<DeleteProfileResult> {

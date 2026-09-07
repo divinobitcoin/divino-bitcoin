@@ -81,35 +81,12 @@ public class DivinoNativeVaultModule: Module {
       try self.store.readPublic(profileId: profileId)
     }
 
+    AsyncFunction("signPsbt") { (profileId: String, network: String, psbtBase64: String, promise: Promise) in
+      self.enqueueSignPsbt(profileId: profileId, network: network, psbtBase64: psbtBase64, promise: promise)
+    }
+
     AsyncFunction("authorizeSigningIntent") { (profileId: String, network: String, psbtBase64: String, promise: Promise) in
-      if network != SignetVaultCrypto.network {
-        promise.reject("VAULT_NETWORK", "Este cofre aceita apenas Signet.")
-        return
-      }
-      DispatchQueue.global(qos: .userInitiated).async {
-        do {
-          guard let psbtBytes = Data(base64Encoded: psbtBase64) else {
-            throw VaultException(code: "VAULT_INVALID_PSBT", message: "PSBT ilegível.")
-          }
-          var signed = Data()
-          var count = 0
-          try self.store.withMnemonic(profileId: profileId) { words in
-            let result = try SignetVaultCrypto.signPsbt(words: words, psbtBytes: psbtBytes)
-            signed = result.0
-            count = result.1
-          }
-          promise.resolve([
-            "profileId": profileId,
-            "network": SignetVaultCrypto.network,
-            "psbtBase64": signed.base64EncodedString(),
-            "signedInputCount": count,
-          ])
-        } catch let error as VaultException {
-          promise.reject(error.code, error.message)
-        } catch {
-          promise.reject("VAULT_REFUSED", "O cofre recusou assinar.")
-        }
-      }
+      self.enqueueSignPsbt(profileId: profileId, network: network, psbtBase64: psbtBase64, promise: promise)
     }
 
     AsyncFunction("deleteProfile") { (profileId: String) in
@@ -126,6 +103,43 @@ public class DivinoNativeVaultModule: Module {
         code: 1,
         userInfo: [NSLocalizedDescriptionKey: "A operação '\(operation)' não existe neste cofre e não será implementada."],
       )
+    }
+  }
+
+  private func enqueueSignPsbt(profileId: String, network: String, psbtBase64: String, promise: Promise) {
+    if network != SignetVaultCrypto.network {
+      promise.reject("VAULT_NETWORK", "Este cofre aceita apenas Signet.")
+      return
+    }
+    if psbtBase64.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+      promise.reject("VAULT_INVALID_PSBT", "PSBT ilegível.")
+      return
+    }
+    DispatchQueue.global(qos: .userInitiated).async {
+      do {
+        guard let psbtBytes = Data(base64Encoded: psbtBase64.trimmingCharacters(in: .whitespacesAndNewlines)),
+              !psbtBytes.isEmpty
+        else {
+          throw VaultException(code: "VAULT_INVALID_PSBT", message: "PSBT ilegível.")
+        }
+        var signed = Data()
+        var count = 0
+        try self.store.withMnemonic(profileId: profileId) { words in
+          let result = try SignetVaultCrypto.signPsbt(words: words, psbtBytes: psbtBytes)
+          signed = result.0
+          count = result.1
+        }
+        promise.resolve([
+          "profileId": profileId,
+          "network": SignetVaultCrypto.network,
+          "psbtBase64": signed.base64EncodedString(),
+          "signedInputCount": count,
+        ])
+      } catch let error as VaultException {
+        promise.reject(error.code, error.message)
+      } catch {
+        promise.reject("VAULT_REFUSED", "O cofre recusou assinar.")
+      }
     }
   }
 

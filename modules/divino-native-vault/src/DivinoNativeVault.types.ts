@@ -73,6 +73,7 @@ export interface DivinoNativeVaultModuleInterface {
   getCapabilitiesAsync(): Promise<NativeVaultCapabilities>;
   provisionSignetProfile(mode: ProvisionMode): Promise<SignetProfileHandle>;
   getPublicDescriptor(profileId: string): Promise<PublicDescriptor>;
+  signPsbt(profileId: string, network: SignetNetworkId, psbtBase64: string): Promise<AuthorizedSigningIntent>;
   authorizeSigningIntent(profileId: string, network: SignetNetworkId, psbtBase64: string): Promise<AuthorizedSigningIntent>;
   deleteProfile(profileId: string): Promise<DeleteProfileResult>;
   /**

@@ -32,6 +32,7 @@ describe("contrato do cofre nativo Signet", () => {
       "getCapabilitiesAsync",
       "provisionSignetProfile",
       "getPublicDescriptor",
+      "signPsbt",
       "authorizeSigningIntent",
       "deleteProfile",
       "assertOperationUnavailableAsync",
@@ -41,6 +42,7 @@ describe("contrato do cofre nativo Signet", () => {
       "getCapabilitiesAsync",
       "provisionSignetProfile",
       "getPublicDescriptor",
+      "signPsbt",
       "authorizeSigningIntent",
       "deleteProfile",
       "assertOperationUnavailableAsync",
@@ -84,6 +86,7 @@ describe("contrato do cofre nativo Signet", () => {
     }
     expect(kotlinSource).toContain("provisionSignetProfile");
     expect(kotlinSource).toContain("getPublicDescriptor");
+    expect(kotlinSource).toContain("signPsbt");
     expect(kotlinSource).toContain("authorizeSigningIntent");
     expect(kotlinSource).toContain("deleteProfile");
     expect(swiftSource).toContain("provisionSignetProfile");
@@ -414,5 +417,43 @@ describe("contrato do cofre nativo Signet", () => {
     expect(vaultScreen).not.toMatch(/Alert\.alert\([^)]*value/);
     expect(vaultScreen).not.toMatch(/Toast/);
     expect(vaultScreen).not.toMatch(/mnemonic/i);
+  });
+
+  it("signPsbt assina só Signet desta fingerprint, recusa lixo e outra rede", () => {
+    const crypto = readFileSync(
+      resolve(
+        import.meta.dirname,
+        "../modules/divino-native-vault/android/src/main/java/expo/modules/divinonativevault/SignetVaultCrypto.kt",
+      ),
+      "utf8",
+    );
+    const vaultScreen = readFileSync(
+      resolve(import.meta.dirname, "../app/dev/signet-vault.tsx"),
+      "utf8",
+    );
+    const iosCrypto = readFileSync(
+      resolve(import.meta.dirname, "../modules/divino-native-vault/ios/SignetVaultCrypto.swift"),
+      "utf8",
+    );
+
+    expect(kotlinSource).toContain("AsyncFunction(\"signPsbt\")");
+    expect(kotlinSource).toContain("VAULT_NETWORK");
+    expect(kotlinSource).toContain("VAULT_INVALID_PSBT");
+    expect(swiftSource).toContain("AsyncFunction(\"signPsbt\")");
+    expect(crypto).toContain("fun signPsbt");
+    expect(crypto).toContain("masterKeyFingerprint == masterFingerprint");
+    expect(crypto).toContain("assertBip84SignetAccount0");
+    expect(crypto).toContain("PSBT ilegível.");
+    expect(iosCrypto).toContain("func signPsbt");
+    expect(iosCrypto).toContain("assertBip84SignetAccount0");
+    expect(wrapperSource).toContain("export async function signPsbt");
+    expect(wrapperSource).not.toMatch(/getSeed/);
+    expect(vaultScreen).toContain("signPsbt");
+    expect(vaultScreen).toContain("Colar");
+    expect(vaultScreen).toContain(">Assinar<");
+    expect(vaultScreen).toContain("PSBT assinado");
+    expect(vaultScreen).toContain("Copiado");
+    expect(vaultScreen).not.toMatch(/Toast/);
+    expect(vaultScreen).not.toMatch(/putExtra\(/);
   });
 });

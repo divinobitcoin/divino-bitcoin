@@ -20,4 +20,5 @@ export {
   getPublicDescriptor,
   isNativeVaultAvailable,
   provisionSignetProfile,
+  signPsbt,
 } from "./native-vault";

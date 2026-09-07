@@ -120,6 +120,7 @@ enum SignetVaultCrypto {
       guard ours.count == 1 else {
         throw VaultException(code: "VAULT_REFUSED", message: "Entrada \(index) não pertence a este perfil.")
       }
+      try assertBip84SignetAccount0(ours[0].path)
       let derived = try master.derive(path: ours[0].path)
       if derived.publicKey != ours[0].publicKey {
         throw VaultException(code: "VAULT_REFUSED", message: "A origem da entrada \(index) não confere com o cofre.")
@@ -137,6 +138,18 @@ enum SignetVaultCrypto {
       }
     }
     throw VaultException(code: "VAULT_REFUSED", message: "Entrada \(index) não é um endereço deste perfil.")
+  }
+
+  private static func assertBip84SignetAccount0(_ path: [UInt32]) throws {
+    let hardened: UInt32 = 0x8000_0000
+    guard path.count >= 5,
+          path[0] == 84 + hardened,
+          path[1] == 1 + hardened,
+          path[2] == 0 + hardened,
+          path[3] == 0 || path[3] == 1
+    else {
+      throw VaultException(code: "VAULT_REFUSED", message: "Caminho que não é BIP-84 Signet conta 0.")
+    }
   }
 
   private static func assertOwned(script: Data, publicKey: Data) throws {

@@ -8,12 +8,12 @@ import { ScreenContainer } from "@/components/screen-container";
 import { cores } from "@/constants/palette";
 import { haptic } from "@/lib/haptics";
 import {
-  authorizeSigningIntent,
   deleteProfile,
   getCapabilities,
   getPublicDescriptor,
   isNativeVaultAvailable,
   provisionSignetProfile,
+  signPsbt,
 } from "@/modules/divino-native-vault/src";
 import type { NativeVaultCapabilities, PublicDescriptor } from "@/modules/divino-native-vault/src";
 import { SIGNET_NETWORK } from "@/shared/bitcoin-network";
@@ -154,8 +154,21 @@ export default function SignetVaultScreen() {
               accessibilityRole="button"
               disabled={busy}
               onPress={() =>
+                void Clipboard.getStringAsync().then((value) => {
+                  setPsbt(value.trim());
+                  haptic.light();
+                })
+              }
+              style={styles.buttonSecondary}
+            >
+              <Text style={styles.buttonSecondaryText}>Colar</Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              disabled={busy}
+              onPress={() =>
                 void run(async () => {
-                  const result = await authorizeSigningIntent({
+                  const result = await signPsbt({
                     profileId: descriptor.profileId,
                     network: "signet",
                     psbtBase64: psbt,
@@ -165,9 +178,9 @@ export default function SignetVaultScreen() {
               }
               style={[styles.button, busy && styles.buttonDisabled]}
             >
-              <Text style={styles.buttonText}>Assinar no cofre</Text>
+              {busy ? <ActivityIndicator color={cores.acaoPrimariaTexto} /> : <Text style={styles.buttonText}>Assinar</Text>}
             </Pressable>
-            {authorized ? <CopyBlock label="PSBT autorizada" value={authorized} /> : null}
+            {authorized ? <CopyBlock label="PSBT assinado" value={authorized} /> : null}
 
             <Pressable
               accessibilityRole="button"

@@ -160,6 +160,7 @@ object SignetVaultCrypto {
         throw VaultException("VAULT_REFUSED", "Entrada $index com mais de uma origem nossa. Recusando.")
       }
       val (pub, path) = ours.entries.first()
+      assertBip84SignetAccount0(path.keyPath)
       val derived = master.derivePrivateKey(path.keyPath)
       if (derived.publicKey != pub) {
         throw VaultException("VAULT_REFUSED", "A origem da entrada $index não confere com o cofre.")
@@ -223,15 +224,26 @@ object SignetVaultCrypto {
       val ours = output.derivationPaths.filter { (_, path) -> path.masterKeyFingerprint == masterFingerprint }
       if (ours.isEmpty()) return@forEachIndexed
       ours.forEach { (pub, path) ->
-        val pathString = path.keyPath.toString()
-        if (!pathString.startsWith("m/84'/1'/0'/") && !pathString.startsWith("m/84h/1h/0h/")) {
-          throw VaultException("VAULT_REFUSED", "Saída $index com caminho que não é BIP-84 Signet.")
-        }
+        assertBip84SignetAccount0(path.keyPath)
         val derived = master.derivePrivateKey(path.keyPath)
         if (derived.publicKey != pub) {
           throw VaultException("VAULT_REFUSED", "A origem da saída $index não confere com o cofre.")
         }
       }
+    }
+  }
+
+  private fun assertBip84SignetAccount0(keyPath: fr.acinq.bitcoin.KeyPath) {
+    val path = keyPath.path
+    val hardened = 0x80000000L
+    if (
+      path.size < 5 ||
+      path[0] != 84L + hardened ||
+      path[1] != 1L + hardened ||
+      path[2] != 0L + hardened ||
+      (path[3] != 0L && path[3] != 1L)
+    ) {
+      throw VaultException("VAULT_REFUSED", "Caminho que não é BIP-84 Signet conta 0.")
     }
   }
 
