@@ -1,7 +1,7 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import * as Clipboard from "expo-clipboard";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { CampoTexto } from "@/components/campo-texto";
 import { ScreenContainer } from "@/components/screen-container";
@@ -17,9 +17,23 @@ import {
 } from "@/modules/divino-native-vault/src";
 import type { NativeVaultCapabilities, PublicDescriptor } from "@/modules/divino-native-vault/src";
 import { SIGNET_NETWORK } from "@/shared/bitcoin-network";
+import { broadcastRawTransactionViaCoreRpc } from "@/shared/bitcoin-core-wallet-client";
+import { finalizeSignedPsbt, reviewSignedTransaction } from "@/shared/transaction-broadcast";
+import {
+  buildVaultUnsignedPsbt,
+  fetchVaultUtxos,
+  type VaultUtxoSet,
+} from "@/shared/signet-vault-utxo";
+
+const RPC_URL_PADRAO = "http://127.0.0.1:38332";
+const MEMPOOL_SIGNET = "https://mempool.space/signet/tx/";
 
 function messageOf(error: unknown): string {
   return error instanceof Error ? error.message : "Falha desconhecida.";
+}
+
+function formatSats(value: number): string {
+  return `${new Intl.NumberFormat("pt-BR").format(value)} sats`;
 }
 
 export default function SignetVaultScreen() {
@@ -29,6 +43,14 @@ export default function SignetVaultScreen() {
   const [descriptor, setDescriptor] = useState<PublicDescriptor | null>(null);
   const [psbt, setPsbt] = useState("");
   const [authorized, setAuthorized] = useState("");
+  const [rpcUrl, setRpcUrl] = useState(RPC_URL_PADRAO);
+  const [rpcUser, setRpcUser] = useState("");
+  const [rpcPassword, setRpcPassword] = useState("");
+  const [chain, setChain] = useState<VaultUtxoSet | null>(null);
+  const [destination, setDestination] = useState("");
+  const [amount, setAmount] = useState("");
+  const [feeRate, setFeeRate] = useState("2");
+  const [txid, setTxid] = useState("");
 
   const reload = useCallback(async () => {
     if (!isNativeVaultAvailable()) {
@@ -42,12 +64,87 @@ export default function SignetVaultScreen() {
       setDescriptor(await getPublicDescriptor(next.profileId));
     } else {
       setDescriptor(null);
+      setChain(null);
+      setTxid("");
     }
   }, []);
+
+  function currentRpc() {
+    if (!rpcUser.trim() || rpcPassword === "") return null;
+    return { url: rpcUrl.trim() || RPC_URL_PADRAO, username: rpcUser.trim(), password: rpcPassword };
+  }
+
+  async function loadBalance(publicDescriptor: PublicDescriptor) {
+    const set = await fetchVaultUtxos({
+      network: "signet",
+      accountXpub: publicDescriptor.accountXpub,
+      masterFingerprint: publicDescriptor.masterFingerprint,
+      receiveDescriptor: publicDescriptor.receiveDescriptor,
+      changeDescriptor: publicDescriptor.changeDescriptor,
+      receiveAddress0: publicDescriptor.receiveAddress0,
+      rpc: currentRpc(),
+    });
+    setChain(set);
+  }
 
   useEffect(() => {
     void reload().catch((caught) => setError(messageOf(caught)));
   }, [reload]);
+
+  useEffect(() => {
+    if (!descriptor) return;
+    void loadBalance(descriptor).catch((caught) => setError(messageOf(caught)));
+    // Saldo inicial: Esplora público se o RPC ainda estiver vazio.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [descriptor]);
+
+  async function enviar(publicDescriptor: PublicDescriptor) {
+    const rpc = currentRpc();
+    if (!rpc) {
+      throw new Error("Informe URL, usuário e senha do RPC Signet do bitcoind para transmitir.");
+    }
+    const targetSats = Number(amount.trim());
+    const rate = Number(feeRate.trim());
+    if (!Number.isInteger(targetSats) || targetSats <= 0) {
+      throw new Error("Informe o valor em satoshis inteiros.");
+    }
+    if (!Number.isFinite(rate) || rate <= 0) {
+      throw new Error("Informe uma taxa em sat/vB maior que zero.");
+    }
+    const set = await fetchVaultUtxos({
+      network: "signet",
+      accountXpub: publicDescriptor.accountXpub,
+      masterFingerprint: publicDescriptor.masterFingerprint,
+      receiveDescriptor: publicDescriptor.receiveDescriptor,
+      changeDescriptor: publicDescriptor.changeDescriptor,
+      receiveAddress0: publicDescriptor.receiveAddress0,
+      rpc,
+    });
+    const built = buildVaultUnsignedPsbt({
+      network: "signet",
+      utxos: set.utxos,
+      recipientAddress: destination,
+      targetSats,
+      feeRateSatsPerVByte: rate,
+      book: set.book,
+    });
+    const signed = await signPsbt({
+      profileId: publicDescriptor.profileId,
+      network: "signet",
+      psbtBase64: built.psbtBase64,
+    });
+    const finalized = finalizeSignedPsbt({ signedPsbtBase64: signed.psbtBase64, network: "signet" });
+    const reviewed = reviewSignedTransaction({
+      rawTxHex: finalized.rawTxHex,
+      network: "signet",
+      totalInputSats: built.totalInputSats,
+      changeAddresses: set.book.change.map((entry) => entry.address),
+    });
+    const broadcast = await broadcastRawTransactionViaCoreRpc({ config: rpc, review: reviewed });
+    setTxid(broadcast.txid);
+    setAuthorized(signed.psbtBase64);
+    await loadBalance(publicDescriptor);
+  }
 
   async function run(action: () => Promise<void>) {
     haptic.medium();
@@ -138,6 +235,109 @@ export default function SignetVaultScreen() {
             <CopyBlock label="Descriptor de recebimento" value={descriptor.receiveDescriptor} />
             <CopyBlock label="Descriptor de troco" value={descriptor.changeDescriptor} />
 
+            <Text style={styles.step}>Nó Signet (broadcast)</Text>
+            <Text style={styles.label}>RPC do bitcoind (lança sendrawtransaction). Se falhar a leitura, o saldo vem do Esplora/Electrum Signet público.</Text>
+            <CampoTexto
+              value={rpcUrl}
+              onChangeText={setRpcUrl}
+              placeholder={RPC_URL_PADRAO}
+              placeholderTextColor={cores.textoTerciario}
+              autoCapitalize="none"
+              autoCorrect={false}
+              style={styles.inputSingle}
+            />
+            <CampoTexto
+              value={rpcUser}
+              onChangeText={setRpcUser}
+              placeholder="rpcuser"
+              placeholderTextColor={cores.textoTerciario}
+              autoCapitalize="none"
+              autoCorrect={false}
+              style={styles.inputSingle}
+            />
+            <CampoTexto
+              value={rpcPassword}
+              onChangeText={setRpcPassword}
+              placeholder="rpcpassword"
+              placeholderTextColor={cores.textoTerciario}
+              autoCapitalize="none"
+              autoCorrect={false}
+              secureTextEntry
+              style={styles.inputSingle}
+            />
+
+            <Text style={styles.step}>Saldo</Text>
+            <View style={styles.darkCard}>
+              <Text style={styles.darkLabel}>
+                {chain
+                  ? chain.source === "bitcoin-core-rpc"
+                    ? "Nó próprio"
+                    : "Electrum/Esplora Signet público"
+                  : "A consultar…"}
+              </Text>
+              <Text style={styles.darkBalance}>{chain ? formatSats(chain.confirmedSats) : "—"}</Text>
+              {chain && chain.pendingSats !== 0 ? (
+                <Text style={styles.pending}>Pendente {formatSats(chain.pendingSats)}</Text>
+              ) : null}
+            </View>
+            <Pressable
+              accessibilityRole="button"
+              disabled={busy}
+              onPress={() => void run(async () => { await loadBalance(descriptor); })}
+              style={[styles.buttonSecondary, busy && styles.buttonDisabled]}
+            >
+              <Text style={styles.buttonSecondaryText}>Atualizar saldo</Text>
+            </Pressable>
+
+            <Text style={styles.step}>Enviar</Text>
+            <Text style={styles.label}>Endereço tb1q Signet</Text>
+            <CampoTexto
+              value={destination}
+              onChangeText={setDestination}
+              placeholder="tb1q..."
+              placeholderTextColor={cores.textoTerciario}
+              autoCapitalize="none"
+              autoCorrect={false}
+              style={styles.inputSingle}
+            />
+            <Text style={styles.label}>Quantos sats</Text>
+            <CampoTexto
+              value={amount}
+              onChangeText={setAmount}
+              placeholder="10000"
+              placeholderTextColor={cores.textoTerciario}
+              keyboardType="number-pad"
+              style={styles.inputSingle}
+            />
+            <Text style={styles.label}>Taxa (sat/vB)</Text>
+            <CampoTexto
+              value={feeRate}
+              onChangeText={setFeeRate}
+              placeholder="2"
+              placeholderTextColor={cores.textoTerciario}
+              keyboardType="decimal-pad"
+              style={styles.inputSingle}
+            />
+            <Pressable
+              accessibilityRole="button"
+              disabled={busy}
+              onPress={() => void run(async () => { await enviar(descriptor); })}
+              style={[styles.button, busy && styles.buttonDisabled]}
+            >
+              {busy ? <ActivityIndicator color={cores.acaoPrimariaTexto} /> : <Text style={styles.buttonText}>Enviar</Text>}
+            </Pressable>
+            {txid ? (
+              <>
+                <CopyBlock label="txid" value={txid} />
+                <Pressable
+                  accessibilityRole="link"
+                  onPress={() => void Linking.openURL(`${MEMPOOL_SIGNET}${txid}`)}
+                >
+                  <Text style={styles.link}>{`${MEMPOOL_SIGNET}${txid}`}</Text>
+                </Pressable>
+              </>
+            ) : null}
+
             <Text style={styles.step}>Assinar PSBT</Text>
             <Text style={styles.label}>PSBT não assinada (base64)</Text>
             <CampoTexto
@@ -196,6 +396,8 @@ export default function SignetVaultScreen() {
                         await deleteProfile(descriptor.profileId);
                         setAuthorized("");
                         setPsbt("");
+                        setTxid("");
+                        setChain(null);
                         await reload();
                       }),
                   },
@@ -284,6 +486,16 @@ const styles = StyleSheet.create({
     padding: 12,
     textAlignVertical: "top",
   },
+  inputSingle: {
+    backgroundColor: cores.superficieAlta,
+    borderColor: cores.borda,
+    borderRadius: 12,
+    borderWidth: 1,
+    color: cores.textoPrimario,
+    minHeight: 48,
+    padding: 12,
+  },
+  link: { color: cores.acaoSecundariaTexto, fontSize: 12, lineHeight: 18, textDecorationLine: "underline" },
   button: {
     alignItems: "center",
     backgroundColor: cores.acaoPrimaria,

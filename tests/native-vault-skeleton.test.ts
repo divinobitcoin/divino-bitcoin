@@ -453,7 +453,13 @@ describe("contrato do cofre nativo Signet", () => {
     expect(vaultScreen).toContain(">Assinar<");
     expect(vaultScreen).toContain("PSBT assinado");
     expect(vaultScreen).toContain("Copiado");
+    expect(vaultScreen).toContain("Enviar");
+    expect(vaultScreen).toContain("tb1q");
+    expect(vaultScreen).toContain("mempool.space/signet/tx/");
+    expect(vaultScreen).toContain("broadcastRawTransactionViaCoreRpc");
+    expect(vaultScreen).toContain("buildVaultUnsignedPsbt");
     expect(vaultScreen).not.toMatch(/Toast/);
     expect(vaultScreen).not.toMatch(/putExtra\(/);
+    expect(vaultScreen).not.toMatch(/getSeed/);
   });
 });
