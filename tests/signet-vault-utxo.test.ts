@@ -6,9 +6,11 @@ import { deriveWatchAddressBook } from "../shared/signet-watch-addresses";
 import {
   PUBLIC_SIGNET_ESPLORA,
   assertSignetEsploraUrl,
+  broadcastVaultTransaction,
   buildVaultUnsignedPsbt,
   fetchVaultUtxos,
 } from "../shared/signet-vault-utxo";
+import type { TransactionReview } from "../shared/transaction-broadcast";
 
 const SEED = "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f";
 const VERSOES_TESTNET = { private: 0x04358394, public: 0x043587cf };
@@ -160,5 +162,52 @@ describe("buildVaultUnsignedPsbt", () => {
         book,
       }),
     ).toThrow(/Mainnet|tb1q/);
+  });
+});
+
+const RAW_REAL =
+  "020000000001011518503dfe8e58bebb508ac3c95ce9bd399adc38b17e8c733ae059271d731d4b0100000000fdffffff028813000000000000160014306b0e91bfc57cebb994b28f831c5f25cadc20876f12000000000000160014b66d68a069e00cd3eeb88b3aa8cbc565af43032602483045022100e705ee3fc2e9b76ece347c3ce9e4ddd530dda610c61a893a1c78785154b29c6702203787d2e7a6551d7f5eada400fcf26b7e38b3de07efc762365ba4ff3dce35a1300121022be393012e9d3c3e7cbf0865f218f451504274fd187fe18a6cef8192385f1bdf00000000";
+const TXID_REAL = "87174464d90500db2e87227dee5d123f5f5c4b14642dd8499d398819d0e7238c";
+const revisao = { rawTxHex: RAW_REAL, txid: TXID_REAL, network: "signet" } as TransactionReview;
+
+describe("broadcastVaultTransaction", () => {
+  it("usa o RPC quando ele responde e cai no Esplora Signet se o RPC falhar", async () => {
+    const rpcOk = jsonRpc({ sendrawtransaction: () => TXID_REAL });
+    const viaRpc = await broadcastVaultTransaction({
+      review: revisao,
+      rpc: { url: "http://127.0.0.1:38332", username: "u", password: "p" },
+      fetchImpl: rpcOk as typeof fetch,
+    });
+    expect(viaRpc.source).toBe("bitcoin-core-rpc");
+    expect(viaRpc.txid).toBe(TXID_REAL);
+
+    const fetchImpl = async (url: string | URL, init?: RequestInit) => {
+      const href = String(url);
+      if (href.startsWith("http://127.0.0.1")) {
+        return new Response("nope", { status: 500 });
+      }
+      if (href.endsWith("/tx") && init?.method === "POST") {
+        return new Response(TXID_REAL, { status: 200 });
+      }
+      return new Response("nope", { status: 404 });
+    };
+    const viaEsplora = await broadcastVaultTransaction({
+      review: revisao,
+      rpc: { url: "http://127.0.0.1:38332", username: "u", password: "p" },
+      esploraBaseUrl: PUBLIC_SIGNET_ESPLORA,
+      fetchImpl: fetchImpl as typeof fetch,
+    });
+    expect(viaEsplora.source).toBe("esplora-publico");
+    expect(viaEsplora.txid).toBe(TXID_REAL);
+  });
+
+  it("recusa Esplora Mainnet", async () => {
+    await expect(
+      broadcastVaultTransaction({
+        review: revisao,
+        esploraBaseUrl: "https://mempool.space/api",
+        fetchImpl: (async () => new Response(TXID_REAL)) as typeof fetch,
+      }),
+    ).rejects.toThrow(/Signet|Mainnet/);
   });
 });

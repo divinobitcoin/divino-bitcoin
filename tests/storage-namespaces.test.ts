@@ -26,6 +26,7 @@ describe("namespaces locais de carteira", () => {
       "network-config",
       "sync-metadata",
       "unsigned-intent",
+      "watch-only-profile",
     ]);
     expect(SIGNET_PUBLIC_STORAGE_RECORDS).not.toContain("seed");
     expect(SIGNET_PUBLIC_STORAGE_RECORDS).not.toContain("private-key");

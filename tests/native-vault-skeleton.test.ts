@@ -458,8 +458,23 @@ describe("contrato do cofre nativo Signet", () => {
     expect(vaultScreen).toContain("mempool.space/signet/tx/");
     expect(vaultScreen).toContain("broadcastRawTransactionViaCoreRpc");
     expect(vaultScreen).toContain("buildVaultUnsignedPsbt");
+    expect(vaultScreen).toContain("Nível 1");
+    expect(vaultScreen).toContain("Nível 2");
+    expect(vaultScreen).toContain("Assinador externo");
+    expect(vaultScreen).toContain("Sparrow");
+    expect(vaultScreen).toContain("SeedSigner");
+    expect(vaultScreen).toContain("Jade");
+    expect(vaultScreen).toContain("Coldcard");
+    expect(vaultScreen).toContain("lerDescritorWatchOnly");
+    expect(vaultScreen).toContain("broadcastVaultTransaction");
+    expect(vaultScreen).not.toMatch(/comprar/i);
     expect(vaultScreen).not.toMatch(/Toast/);
     expect(vaultScreen).not.toMatch(/putExtra\(/);
     expect(vaultScreen).not.toMatch(/getSeed/);
+
+    const externo = vaultScreen.slice(vaultScreen.indexOf("function NivelExterno"));
+    expect(externo).not.toContain("provisionSignetProfile");
+    expect(externo).not.toContain("signPsbt(");
+    expect(externo).toContain("assertPsbtMatchesWatchOnly");
   });
 });

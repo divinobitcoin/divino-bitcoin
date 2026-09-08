@@ -9,9 +9,16 @@ import {
 } from "./bitcoin-core-wallet-client";
 import type { EsploraUtxo } from "./esplora-client";
 import { fetchAddressUtxos, sumUtxoValueSats } from "./esplora-client";
+import {
+  broadcastRawTransactionViaCoreRpc,
+} from "./bitcoin-core-wallet-client";
 import type { Bip32DerivationInfo } from "./psbt-builder";
 import { buildPsbtFromSelection, type BuiltPsbt } from "./psbt-builder";
 import { selectCoins } from "./coin-selection";
+import {
+  broadcastRawTransaction,
+  type TransactionReview,
+} from "./transaction-broadcast";
 import {
   SIGNET_WATCH_GAP,
   assertTb1qSignetAddress,
@@ -244,4 +251,52 @@ export function buildVaultUnsignedPsbt(params: {
     },
     changeDerivation: change.derivation,
   });
+}
+
+function hasRpcCredentials(rpc?: VaultRpcConfig | null): rpc is VaultRpcConfig {
+  return rpc != null && rpc.url.trim() !== "" && rpc.username.trim() !== "" && rpc.password !== "";
+}
+
+/**
+ * Transmite a transação revisada: bitcoind Signet se houver RPC; se faltar
+ * ou cair, Esplora Signet público. Recusa URL sem "signet".
+ */
+export async function broadcastVaultTransaction(params: {
+  review: TransactionReview;
+  rpc?: VaultRpcConfig | null;
+  esploraBaseUrl?: string;
+  fetchImpl?: FetchLike;
+}): Promise<{ txid: string; source: VaultOnchainSource }> {
+  const fetchImpl = params.fetchImpl ?? fetch;
+  let rpcError: Error | null = null;
+
+  if (hasRpcCredentials(params.rpc)) {
+    try {
+      const result = await broadcastRawTransactionViaCoreRpc({
+        config: params.rpc,
+        review: params.review,
+        fetchImpl,
+      });
+      return { txid: result.txid, source: "bitcoin-core-rpc" };
+    } catch (failure) {
+      rpcError = failure instanceof Error ? failure : new Error(String(failure));
+    }
+  }
+
+  const esplora = assertSignetEsploraUrl(params.esploraBaseUrl ?? PUBLIC_SIGNET_ESPLORA);
+  try {
+    const result = await broadcastRawTransaction({
+      config: { baseUrl: esplora },
+      review: params.review,
+      fetchImpl,
+    });
+    return { txid: result.txid, source: "esplora-publico" };
+  } catch (failure) {
+    const esploraMsg = failure instanceof Error ? failure.message : String(failure);
+    throw new Error(
+      rpcError
+        ? `O RPC do nó falhou (${rpcError.message}). O Esplora Signet público também falhou (${esploraMsg}).`
+        : `Informe o RPC Signet do bitcoind ou use Esplora Signet. Falha: ${esploraMsg}.`,
+    );
+  }
 }

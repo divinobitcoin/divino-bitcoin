@@ -12,6 +12,7 @@ export const SIGNET_PUBLIC_STORAGE_RECORDS = [
   "network-config",
   "sync-metadata",
   "unsigned-intent",
+  "watch-only-profile",
 ] as const;
 
 export type SignetPublicStorageRecord = (typeof SIGNET_PUBLIC_STORAGE_RECORDS)[number];
