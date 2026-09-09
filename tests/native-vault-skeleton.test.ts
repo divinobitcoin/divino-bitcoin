@@ -476,5 +476,21 @@ describe("contrato do cofre nativo Signet", () => {
     expect(externo).not.toContain("provisionSignetProfile");
     expect(externo).not.toContain("signPsbt(");
     expect(externo).toContain("assertPsbtMatchesWatchOnly");
+    expect(externo).toContain("name=\"settings\"");
+    expect(externo).toContain("rpcAberto");
+    expect(externo).not.toMatch(/position:\s*["']absolute["']/);
+    expect(externo).toContain("secureTextEntry");
+    expect(externo).not.toMatch(/<Text[^>]*>\{rpcPassword\}/);
+    expect(externo).not.toMatch(/\bNWC\b/);
+    expect(externo).not.toMatch(/LNbits/i);
+    expect(externo).not.toMatch(/macaroon/i);
+
+    expect(vaultScreen).toContain("lerFaturaLightningSignet");
+    expect(vaultScreen).toContain("lntbs");
+    expect(vaultScreen).toContain("Pagar Lightning ainda não existe neste cofre. As 12 palavras não recuperam canais.");
+    expect(vaultScreen).toContain("accessibilityState={{ disabled: true }}");
+    expect(vaultScreen).not.toMatch(/\bNWC\b/);
+    expect(vaultScreen).not.toMatch(/LNbits/i);
+    expect(vaultScreen).not.toMatch(/macaroon/i);
   });
 });

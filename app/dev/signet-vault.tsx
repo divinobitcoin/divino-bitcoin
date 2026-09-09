@@ -22,6 +22,11 @@ import {
   signPsbt,
 } from "@/modules/divino-native-vault/src";
 import type { NativeVaultCapabilities, PublicDescriptor } from "@/modules/divino-native-vault/src";
+import {
+  lerFaturaLightningSignet,
+  truncarPaymentHash,
+  type Bolt11Invoice,
+} from "@/lib/bolt11";
 import { SIGNET_NETWORK } from "@/shared/bitcoin-network";
 import { broadcastRawTransactionViaCoreRpc } from "@/shared/bitcoin-core-wallet-client";
 import { assertPsbtMatchesWatchOnly } from "@/shared/signet-external-psbt";
@@ -41,6 +46,8 @@ import { finalizeSignedPsbt, reviewSignedTransaction } from "@/shared/transactio
 
 const RPC_URL_PADRAO = "http://127.0.0.1:38332";
 const MEMPOOL_SIGNET = "https://mempool.space/signet/tx/";
+const PAGAR_LIGHTNING_DESABILITADO =
+  "Pagar Lightning ainda não existe neste cofre. As 12 palavras não recuperam canais.";
 
 type Nivel = "escolher" | "nativo" | "externo";
 
@@ -318,6 +325,8 @@ function NivelNativo({ onVoltar }: { onVoltar: () => void }) {
           </View>
         </View>
 
+        <FaturaLightning />
+
         {capabilities && (
           <View style={styles.darkCard}>
             <Text style={styles.darkLabel}>Estado</Text>
@@ -563,6 +572,7 @@ function NivelExterno({
   const [unsignedPsbt, setUnsignedPsbt] = useState("");
   const [signedPsbt, setSignedPsbt] = useState("");
   const [txid, setTxid] = useState("");
+  const [rpcAberto, setRpcAberto] = useState(false);
 
   function currentRpc() {
     if (!rpcUser.trim() || rpcPassword === "") return null;
@@ -680,9 +690,21 @@ function NivelExterno({
   return (
     <ScreenContainer edges={["top", "left", "right", "bottom"]} containerStyle={styles.tela} style={styles.tela}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.header}>
-          <Text style={styles.eyebrow}>EXPERIMENTAL · NÃO AUDITADO · {SIGNET_NETWORK.label} · NÍVEL 2</Text>
-          <Text style={styles.title}>Assinador externo</Text>
+        <View style={styles.headerRow}>
+          <View style={styles.flex}>
+            <Text style={styles.eyebrow}>EXPERIMENTAL · NÃO AUDITADO · {SIGNET_NETWORK.label} · NÍVEL 2</Text>
+            <Text style={styles.title}>Assinador externo</Text>
+          </View>
+          {profile ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={rpcAberto ? "Fechar nó Signet" : "Configurar nó Signet"}
+              onPress={() => setRpcAberto((aberto) => !aberto)}
+              style={styles.gearButton}
+            >
+              <MaterialIcons name="settings" size={22} color={cores.acaoSecundariaTexto} />
+            </Pressable>
+          ) : null}
         </View>
 
         <Pressable accessibilityRole="button" onPress={onVoltar}>
@@ -699,6 +721,8 @@ function NivelExterno({
             </Text>
           </View>
         </View>
+
+        <FaturaLightning />
 
         {!profile && (
           <>
@@ -742,38 +766,45 @@ function NivelExterno({
             <CopyBlock label="Descriptor de recebimento" value={profile.receiveDescriptor} />
             <CopyBlock label="Descriptor de troco" value={profile.changeDescriptor} />
 
-            <Text style={styles.step}>Nó Signet (broadcast)</Text>
-            <Text style={styles.label}>
-              RPC do bitcoind (sendrawtransaction). Se faltar, a leitura e a transmissão usam Esplora Signet público.
-            </Text>
-            <CampoTexto
-              value={rpcUrl}
-              onChangeText={setRpcUrl}
-              placeholder={RPC_URL_PADRAO}
-              placeholderTextColor={cores.textoTerciario}
-              autoCapitalize="none"
-              autoCorrect={false}
-              style={styles.inputSingle}
-            />
-            <CampoTexto
-              value={rpcUser}
-              onChangeText={setRpcUser}
-              placeholder="rpcuser"
-              placeholderTextColor={cores.textoTerciario}
-              autoCapitalize="none"
-              autoCorrect={false}
-              style={styles.inputSingle}
-            />
-            <CampoTexto
-              value={rpcPassword}
-              onChangeText={setRpcPassword}
-              placeholder="rpcpassword"
-              placeholderTextColor={cores.textoTerciario}
-              autoCapitalize="none"
-              autoCorrect={false}
-              secureTextEntry
-              style={styles.inputSingle}
-            />
+            {rpcAberto ? (
+              <View style={styles.rpcCard}>
+                <Text style={styles.step}>Nó Signet (broadcast)</Text>
+                <Text style={styles.label}>
+                  RPC do bitcoind (sendrawtransaction). Se faltar, a leitura e a transmissão usam Esplora Signet público.
+                  A senha não aparece em claro.
+                </Text>
+                <CampoTexto
+                  value={rpcUrl}
+                  onChangeText={setRpcUrl}
+                  placeholder={RPC_URL_PADRAO}
+                  placeholderTextColor={cores.textoTerciario}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  style={styles.inputSingle}
+                />
+                <CampoTexto
+                  value={rpcUser}
+                  onChangeText={setRpcUser}
+                  placeholder="rpcuser"
+                  placeholderTextColor={cores.textoTerciario}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  style={styles.inputSingle}
+                />
+                <CampoTexto
+                  value={rpcPassword}
+                  onChangeText={setRpcPassword}
+                  placeholder="senha do RPC"
+                  placeholderTextColor={cores.textoTerciario}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  secureTextEntry
+                  style={styles.inputSingle}
+                />
+              </View>
+            ) : (
+              <Text style={styles.levelHint}>Nó Signet: engrenagem. rpcuser e senha não ficam neste ecrã.</Text>
+            )}
 
             <Text style={styles.step}>Saldo</Text>
             <View style={styles.darkCard}>
@@ -928,6 +959,78 @@ function NivelExterno({
   );
 }
 
+function FaturaLightning() {
+  const [raw, setRaw] = useState("");
+  const [decoded, setDecoded] = useState<Bolt11Invoice | null>(null);
+  const [erro, setErro] = useState("");
+
+  function aplicar(valor: string) {
+    setRaw(valor);
+    const trimmed = valor.trim();
+    if (!trimmed) {
+      setDecoded(null);
+      setErro("");
+      return;
+    }
+    const result = lerFaturaLightningSignet(trimmed);
+    if (!result.valid) {
+      setDecoded(null);
+      setErro(result.error);
+      return;
+    }
+    setDecoded(result.invoice);
+    setErro("");
+  }
+
+  return (
+    <>
+      <Text style={styles.step}>Fatura Lightning</Text>
+      <Text style={styles.label}>BOLT11 Signet (lntbs), com ou sem lightning:. Só leitura — não paga.</Text>
+      <CampoTexto
+        value={raw}
+        onChangeText={aplicar}
+        placeholder="lntbs..."
+        placeholderTextColor={cores.textoTerciario}
+        autoCapitalize="none"
+        autoCorrect={false}
+        multiline
+        style={styles.input}
+      />
+      <Pressable
+        accessibilityRole="button"
+        onPress={() =>
+          void Clipboard.getStringAsync().then((value) => {
+            aplicar(value);
+            haptic.light();
+          })
+        }
+        style={styles.buttonSecondary}
+      >
+        <Text style={styles.buttonSecondaryText}>Colar fatura</Text>
+      </Pressable>
+      {erro ? <Text style={styles.error}>{erro}</Text> : null}
+      {decoded ? (
+        <View style={styles.darkCard}>
+          <Text style={styles.darkLabel}>Valor</Text>
+          <Text style={styles.darkBalance}>
+            {decoded.amountSats !== undefined ? formatSats(decoded.amountSats) : "sem valor definido"}
+          </Text>
+          <Text style={styles.pending}>Expiração {decoded.expiresAt.toLocaleString("pt-BR")}</Text>
+          <Text style={styles.pending}>Payment hash {truncarPaymentHash(decoded.paymentHash)}</Text>
+        </View>
+      ) : null}
+      <Pressable
+        accessibilityRole="button"
+        accessibilityState={{ disabled: true }}
+        disabled
+        style={[styles.button, styles.payDisabled]}
+      >
+        <Text style={styles.payDisabledText}>{PAGAR_LIGHTNING_DESABILITADO}</Text>
+      </Pressable>
+    </>
+  );
+}
+
 function QrPsbt({ valor }: { valor: string }) {
   try {
     const matriz = matrizQr(valor);
@@ -1072,5 +1175,16 @@ const styles = StyleSheet.create({
     backgroundColor: "#ffffff",
     borderRadius: 16,
     padding: 12,
+  },
+  headerRow: { alignItems: "flex-start", flexDirection: "row", gap: 12 },
+  gearButton: { alignItems: "center", height: 44, justifyContent: "center", width: 44 },
+  rpcCard: { gap: 10 },
+  payDisabled: { minHeight: 64, opacity: 0.55, paddingHorizontal: 12, paddingVertical: 10 },
+  payDisabledText: {
+    color: cores.acaoPrimariaTexto,
+    fontSize: 13,
+    fontWeight: "700",
+    lineHeight: 18,
+    textAlign: "center",
   },
 });

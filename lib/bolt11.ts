@@ -14,10 +14,15 @@ const NETWORKS = {
 
 export type Bolt11Network = (typeof NETWORKS)[keyof typeof NETWORKS];
 
+/** Expiração padrão BOLT11 quando a fatura não traz o campo `x`. */
+export const BOLT11_DEFAULT_EXPIRY_SECONDS = 3600;
+
 export interface Bolt11Invoice {
   amountMsats?: number;
   amountSats?: number;
   createdAt: Date;
+  expiresAt: Date;
+  expirySeconds: number;
   invoice: string;
   network: Bolt11Network;
   paymentHash: string;
@@ -96,24 +101,33 @@ function parseHrp(hrp: string): { network: Bolt11Network; amount: { amountMsats?
   return { network: NETWORKS[networkPrefix as keyof typeof NETWORKS], amount: parseAmount(rawAmount) };
 }
 
-function parsePaymentHash(payloadWords: readonly number[]): string {
+function wordsToUint(words: readonly number[]): number {
+  return words.reduce((value, word) => value * 32 + word, 0);
+}
+
+function parseTaggedFields(payloadWords: readonly number[]): { paymentHash: string; expirySeconds: number } {
   let offset = TIMESTAMP_WORD_COUNT;
+  let paymentHash: string | undefined;
+  let expirySeconds = BOLT11_DEFAULT_EXPIRY_SECONDS;
   while (offset < payloadWords.length) {
     if (offset + 3 > payloadWords.length) throw new Error("Os campos da invoice estão incompletos.");
     const tag = CHARSET[payloadWords[offset]];
-    const length = payloadWords[offset + 1] * 32 + payloadWords[offset + 2];
+    const length = payloadWords[offset + 1]! * 32 + payloadWords[offset + 2]!;
     const start = offset + 3;
     const end = start + length;
     if (end > payloadWords.length) throw new Error("Os campos da invoice possuem tamanho inválido.");
 
     if (tag === "p") {
-      const paymentHash = toBytes(payloadWords.slice(start, end), false);
-      if (paymentHash.length !== 32) throw new Error("O payment hash da invoice é inválido.");
-      return toHex(paymentHash);
+      const hash = toBytes(payloadWords.slice(start, end), false);
+      if (hash.length !== 32) throw new Error("O payment hash da invoice é inválido.");
+      paymentHash = toHex(hash);
+    } else if (tag === "x") {
+      expirySeconds = wordsToUint(payloadWords.slice(start, end));
     }
     offset = end;
   }
-  throw new Error("A invoice não contém payment hash.");
+  if (!paymentHash) throw new Error("A invoice não contém payment hash.");
+  return { paymentHash, expirySeconds };
 }
 
 function verifySignature(hrp: string, payloadWords: readonly number[], signatureWords: readonly number[]): void {
@@ -148,17 +162,18 @@ export function validateBolt11Invoice(rawInvoice: string): Bolt11Validation {
 
     const payloadWords = decoded.words.slice(0, -SIGNATURE_WORD_COUNT);
     const signatureWords = decoded.words.slice(-SIGNATURE_WORD_COUNT);
-    const timestamp = payloadWords
-      .slice(0, TIMESTAMP_WORD_COUNT)
-      .reduce((value, word) => value * 32 + word, 0);
-    const paymentHash = parsePaymentHash(payloadWords);
+    const timestamp = wordsToUint(payloadWords.slice(0, TIMESTAMP_WORD_COUNT));
+    const { paymentHash, expirySeconds } = parseTaggedFields(payloadWords);
     verifySignature(decoded.prefix, payloadWords, signatureWords);
+    const createdAt = new Date(timestamp * 1000);
 
     return {
       valid: true,
       invoice: {
         ...amount,
-        createdAt: new Date(timestamp * 1000),
+        createdAt,
+        expirySeconds,
+        expiresAt: new Date((timestamp + expirySeconds) * 1000),
         invoice: normalized,
         network,
         paymentHash,
@@ -167,4 +182,30 @@ export function validateBolt11Invoice(rawInvoice: string): Bolt11Validation {
   } catch (error) {
     return { valid: false, error: error instanceof Error ? error.message : "Não foi possível validar a invoice BOLT11." };
   }
+}
+
+export function truncarPaymentHash(hash: string): string {
+  const hexHash = hash.trim().toLowerCase();
+  if (hexHash.length <= 16) return hexHash;
+  return `${hexHash.slice(0, 8)}…${hexHash.slice(-8)}`;
+}
+
+/**
+ * Lê fatura Lightning **só Signet** (`lntbs`, com ou sem `lightning:`).
+ * Recusa Mainnet (`lnbc`), testnet3 (`lntb`) e checksum inválido.
+ * Não paga, não abre canal, não pede seed.
+ */
+export function lerFaturaLightningSignet(rawInvoice: string): Bolt11Validation {
+  const result = validateBolt11Invoice(rawInvoice);
+  if (!result.valid) return result;
+  if (result.invoice.network === "mainnet") {
+    return { valid: false, error: "Invoice Mainnet (lnbc) recusada. Este cofre só lê fatura Signet (lntbs)." };
+  }
+  if (result.invoice.network === "testnet") {
+    return { valid: false, error: "Invoice testnet3 (lntb) recusada. Este cofre só lê fatura Signet (lntbs)." };
+  }
+  if (result.invoice.network !== "signet") {
+    return { valid: false, error: "Só fatura Lightning Signet (lntbs). Outra rede recusada." };
+  }
+  return result;
 }
