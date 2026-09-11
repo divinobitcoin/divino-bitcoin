@@ -29,8 +29,11 @@ Cola a saída no chat do agente. Sem isto, o agente inventa o projecto.
 - iOS não é o cofre que assina no Xiaomi.
 - Testes Node ≠ Hermes.
 
-## Próxima fatia (única, até fechar)
-Revisão NATIVA da PSBT no Kotlin ANTES de signPsbt: ecrã com destino, sats, taxa, fingerprint. O JS não é a única voz. Sem Lightning a pagar. Sem hardware USB. Sem Mainnet.
+## Fechado nesta árvore (não refazer)
+- Revisão nativa da PSBT (FLAG_SECURE): destino, sats, taxa, fingerprint antes de signPsbt. Tx Signet 97ea03c8…deaf.
+
+## Próxima fatia
+Humano decide. Candidatos, não fazer todos: rótulo destino vs troco na Activity nativa; tirar NWC da UI Signet; README honesto com o cofre que assina. Sem Lightning a pagar. Sem Mainnet.
 
 ## Cota
 Chat Grok e Grok Code partilham o mesmo poço semanal.
