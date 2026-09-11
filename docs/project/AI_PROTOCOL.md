@@ -2,11 +2,17 @@
 
 **Status:** `APPROVED — GOV-REF-001 owner decision recorded; publication/commit handled separately`
 
+> Entrada posterior comum a todos os agentes: [`../../AGENTS.md`](../../AGENTS.md)
+> e [`../ai/README.md`](../ai/README.md). No baseline de 11/09/2026,
+> `CURRENT_STATE.md`/`STATE.yaml` estavam atrasados em relação ao HEAD; confira o
+> repositório real antes de usar a ordem histórica abaixo.
+
 This protocol is neutral between Claude, ChatGPT, Manus, human contributors, and future tools. It defines how work is recorded; it does not delegate ownership, wallet-foundation decisions, wallet-safety acceptance, or custody to an agent. `WALLET-FOUNDATION-001.md` is the canonical product contract. External publication and workflow authority may be delegated by an owner-approved category package with scope, validity, limits and revocation.
 
 ## Required reading order
 
-Before working on a task, an agent or contributor should read the smallest relevant context in this order:
+After reading the common entrypoint above, an agent or contributor should read
+the smallest relevant context in this historical protocol order:
 
 1. [`CURRENT_STATE.md`](CURRENT_STATE.md)
 2. [`SECURITY_INVARIANTS.md`](SECURITY_INVARIANTS.md)

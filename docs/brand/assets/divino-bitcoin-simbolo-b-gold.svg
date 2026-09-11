@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 400 400" role="img" aria-labelledby="title desc">
+  <title id="title">Símbolo oficial do Divino Bitcoin</title>
+  <desc id="desc">Nó soberano com três conexões e halo circular aberto.</desc>
+  <g fill="none" stroke="#F2A900" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M200 72 A128 128 0 1 1 114 105" stroke-width="24"/>
+    <path d="M118 146 L200 200 L282 146 M200 200 L200 292" stroke-width="22"/>
+    <circle cx="118" cy="146" r="23" fill="#F2A900" stroke="none"/>
+    <circle cx="282" cy="146" r="23" fill="#F2A900" stroke="none"/>
+    <circle cx="200" cy="292" r="23" fill="#F2A900" stroke="none"/>
+    <path d="M200 171 L229 200 L200 229 L171 200 Z" fill="#F2A900" stroke="none"/>
+  </g>
+</svg>

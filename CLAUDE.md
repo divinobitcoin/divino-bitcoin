@@ -4,6 +4,11 @@ Este arquivo é lido pelo agente ao abrir o repositório. É público (GPL-3.0-o
 Nunca coloque nome real, credencial, caminho local ou segredo aqui. Isso vive em
 `CLAUDE.local.md` (gitignored).
 
+Antes de trabalhar, leia também `AGENTS.md` e `docs/ai/README.md`. Eles são a
+entrada comum para Claude, Codex, Grok, ChatGPT, Manus e agentes futuros e
+conectam este código ao método do YouTube e à identidade visual. Nenhum deles
+supera a CARTA-001.
+
 **Este arquivo é subordinado a** `docs/decisions/CARTA-001-CARTA-DA-CARTEIRA.md`.
 Se qualquer outro documento — inclusive este — pedir autorização para trabalho
 dentro da faixa Signet/demo com material descartável, a carta vence. Execute.

@@ -2,6 +2,11 @@
 
 Última actualização: 2026-09-09. Signet. Sem valor real. Sem auditoria.
 
+Entrada comum posterior: leia primeiro [`../AGENTS.md`](../AGENTS.md) e
+[`ai/SYNC-IA-DIVINO-BITCOIN-v2.md`](ai/SYNC-IA-DIVINO-BITCOIN-v2.md). Este
+arquivo continua registrando a divisão operacional dos agentes; não substitui a
+CARTA-001 nem o estado verificado no HEAD atual.
+
 ## Quem faz o quê
 - Humano (Divino): testa no Xiaomi, decide a fatia, único `git push`.
 - Este chat Grok (web): arquitectura, prompt da fatia, ler print. Não compete com o Code no mesmo passo.
