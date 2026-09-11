@@ -1,4 +1,3 @@
-cat > /home/divino/Documentos/divino-bitcoin/README.md << 'FIM'
 # Divino Bitcoin
 
 Divino Bitcoin é uma carteira Bitcoin de autocustódia em desenvolvimento, construída com Expo, React Native e TypeScript. Este repositório público é disponibilizado sob a licença **GPL-3.0-or-later** para permitir revisão de código, reprodução de testes e colaboração responsável.
@@ -30,9 +29,16 @@ Para coordenação privada relacionada à revisão, use **contatodivinobitcoin@p
 
 Pré-requisitos: Node.js 22, pnpm 9 e um ambiente Expo compatível.
 
-```bash
-pnpm install
-pnpm test
-pnpm check
-pnpm lint
-pnpm dev
+    pnpm install
+    pnpm test
+    pnpm check
+    pnpm lint
+    pnpm dev
+
+Os testes usam apenas vetores públicos e dados determinísticos. O software não deve ser usado para armazenar ou movimentar bitcoin.
+
+## Licença
+
+Copyright © Divino Bitcoin contributors.
+
+Este projeto é distribuído sob os termos da [GNU General Public License v3.0 ou posterior](LICENSE).
