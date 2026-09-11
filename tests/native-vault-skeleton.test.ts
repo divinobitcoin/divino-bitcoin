@@ -279,7 +279,7 @@ describe("contrato do cofre nativo Signet", () => {
     expect(importSource).not.toMatch(/getSharedPreferences/);
     expect(chrome).toContain("SCREEN_ORIENTATION_PORTRAIT");
     expect(chrome).toContain("FLAG_SECURE");
-    expect(manifest.match(/android:screenOrientation="portrait"/g)?.length).toBe(3);
+    expect(manifest.match(/android:screenOrientation="portrait"/g)?.length).toBe(4);
     expect(reveal).toContain("isSaveEnabled = false");
     expect(quiz).toContain("sortearPar");
   });

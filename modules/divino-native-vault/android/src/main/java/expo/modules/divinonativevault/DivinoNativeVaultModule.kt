@@ -16,6 +16,7 @@ class DivinoNativeVaultModule : Module() {
   private val worker = Executors.newSingleThreadExecutor()
   private var provisionPromise: Promise? = null
   private var provisionMode: String? = null
+  private var signPromise: Promise? = null
 
   private val store: SignetVaultStore
     get() {
@@ -90,6 +91,45 @@ class DivinoNativeVaultModule : Module() {
     }
   }
 
+  /**
+   * O JS não é a única voz: `signPsbt` nunca chama o cofre direto. Primeiro
+   * abre a Activity de revisão nativa; se ela não abrir, ou o usuário
+   * recusar, a assinatura simplesmente não corre.
+   */
+  private fun requestPsbtReview(profileId: String, network: String, psbtBase64: String, promise: Promise) {
+    if (network != SignetVaultCrypto.NETWORK) {
+      promise.reject("VAULT_NETWORK", "Este cofre aceita apenas Signet.", null)
+      return
+    }
+    if (psbtBase64.isBlank()) {
+      promise.reject("VAULT_INVALID_PSBT", "PSBT ilegível.", null)
+      return
+    }
+    if (signPromise != null) {
+      promise.reject("VAULT_BUSY", "Já existe uma revisão de PSBT em curso.", null)
+      return
+    }
+    val activity = appContext.currentActivity
+    if (activity == null) {
+      promise.reject("VAULT_UNAVAILABLE", "Sem Activity para revisar a PSBT. Use o development build.", null)
+      return
+    }
+    val fingerprint = try {
+      store.readPublic(profileId).masterFingerprint
+    } catch (failure: VaultException) {
+      promise.reject(failure.code, failure.message, failure)
+      return
+    }
+    signPromise = promise
+    val intent = Intent(activity, SignetPsbtReviewActivity::class.java).apply {
+      putExtra(SignetPsbtReviewActivity.EXTRA_PROFILE_ID, profileId)
+      putExtra(SignetPsbtReviewActivity.EXTRA_NETWORK, network)
+      putExtra(SignetPsbtReviewActivity.EXTRA_PSBT_BASE64, psbtBase64)
+      putExtra(SignetPsbtReviewActivity.EXTRA_EXPECTED_FINGERPRINT, fingerprint)
+    }
+    activity.startActivityForResult(intent, SignetPsbtReviewActivity.REQUEST_PSBT_REVIEW)
+  }
+
   override fun definition() = ModuleDefinition {
     Name("DivinoNativeVault")
 
@@ -138,11 +178,11 @@ class DivinoNativeVaultModule : Module() {
     }
 
     AsyncFunction("signPsbt") { profileId: String, network: String, psbtBase64: String, promise: Promise ->
-      enqueueSignPsbt(profileId, network, psbtBase64, promise)
+      requestPsbtReview(profileId, network, psbtBase64, promise)
     }
 
     AsyncFunction("authorizeSigningIntent") { profileId: String, network: String, psbtBase64: String, promise: Promise ->
-      enqueueSignPsbt(profileId, network, psbtBase64, promise)
+      requestPsbtReview(profileId, network, psbtBase64, promise)
     }
 
     AsyncFunction("deleteProfile") { profileId: String ->
@@ -155,6 +195,28 @@ class DivinoNativeVaultModule : Module() {
     }
 
     OnActivityResult { _, payload ->
+      if (payload.requestCode == SignetPsbtReviewActivity.REQUEST_PSBT_REVIEW) {
+        val pending = signPromise ?: return@OnActivityResult
+        signPromise = null
+        if (payload.resultCode != Activity.RESULT_OK) {
+          val reason = payload.data?.getStringExtra(SignetPsbtReviewActivity.EXTRA_CANCEL_REASON)
+            ?: "VAULT_CANCELLED"
+          val message = payload.data?.getStringExtra(SignetPsbtReviewActivity.EXTRA_CANCEL_MESSAGE)
+            ?: "Revisão cancelada. Nada foi assinado."
+          pending.reject(reason, message, null)
+          return@OnActivityResult
+        }
+        val extras = payload.data?.extras
+        val profileId = extras?.getString(SignetPsbtReviewActivity.EXTRA_PROFILE_ID)
+        val network = extras?.getString(SignetPsbtReviewActivity.EXTRA_NETWORK)
+        val psbtBase64 = extras?.getString(SignetPsbtReviewActivity.EXTRA_PSBT_BASE64)
+        if (profileId.isNullOrEmpty() || network.isNullOrEmpty() || psbtBase64.isNullOrEmpty()) {
+          pending.reject("VAULT_REFUSED", "A revisão não devolveu a PSBT esperada.", null)
+          return@OnActivityResult
+        }
+        enqueueSignPsbt(profileId, network, psbtBase64, pending)
+        return@OnActivityResult
+      }
       if (payload.requestCode != SignetMnemonicRevealActivity.REQUEST_PROVISION) {
         return@OnActivityResult
       }

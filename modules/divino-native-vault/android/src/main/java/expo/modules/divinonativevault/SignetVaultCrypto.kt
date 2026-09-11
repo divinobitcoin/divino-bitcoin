@@ -36,6 +36,15 @@ object SignetVaultCrypto {
     val receiveAddress0: String,
   )
 
+  data class PsbtReviewOutput(val address: String, val sats: Long)
+
+  data class PsbtReview(
+    val masterFingerprint: String,
+    val inputCount: Int,
+    val outputs: List<PsbtReviewOutput>,
+    val feeSats: Long,
+  )
+
   fun generateMnemonic(): List<String> {
     val entropy = ByteArray(ENTROPY_BYTES)
     SecureRandom().nextBytes(entropy)
@@ -92,6 +101,81 @@ object SignetVaultCrypto {
     } finally {
       seed.fill(0)
     }
+  }
+
+  /**
+   * Descodifica e valida uma PSBT só com material público — sem mnemonic,
+   * sem seed. É o que a Activity de revisão mostra ao usuário ANTES de
+   * qualquer assinatura. Recusa: parse falhou, caminho Mainnet (coin type
+   * 0'), entrada de outra fingerprint, entrada já assinada por nós, saída
+   * que não decodifica como endereço tb1 Signet.
+   */
+  fun reviewPsbt(expectedFingerprint: String, psbtBytes: ByteArray): PsbtReview {
+    val parsed = Psbt.read(psbtBytes).getOrElse {
+      throw VaultException("VAULT_INVALID_PSBT", "PSBT ilegível.")
+    }
+    if (parsed.inputs.isEmpty()) {
+      throw VaultException("VAULT_INVALID_PSBT", "PSBT sem entradas.")
+    }
+    if (parsed.global.tx.txOut.isEmpty()) {
+      throw VaultException("VAULT_INVALID_PSBT", "PSBT sem saídas.")
+    }
+
+    val derivationCounts = parsed.inputs.map { it.derivationPaths.size }
+    val someHaveDerivation = derivationCounts.any { it > 0 }
+    val allHaveDerivation = derivationCounts.all { it > 0 }
+    if (someHaveDerivation && !allHaveDerivation) {
+      throw VaultException(
+        "VAULT_REFUSED",
+        "PSBT com origem de chave em só algumas entradas. Recusando revisar pela metade.",
+      )
+    }
+
+    val hardened = 0x80000000L
+    parsed.inputs.forEachIndexed { index, input ->
+      if (input.witnessUtxo == null) {
+        throw VaultException("VAULT_INVALID_PSBT", "Entrada $index sem witnessUtxo. Só P2WPKH Signet.")
+      }
+      if (!someHaveDerivation) return@forEachIndexed
+      val hasMainnetPath = input.derivationPaths.values.any { it.keyPath.path.getOrNull(1) == 0L + hardened }
+      if (hasMainnetPath) {
+        throw VaultException("VAULT_NETWORK", "Entrada $index com caminho Mainnet (coin type 0'). Recusando.")
+      }
+      val ours = input.derivationPaths.filter { (_, path) -> fingerprintHex(path.masterKeyFingerprint) == expectedFingerprint }
+      if (ours.size != input.derivationPaths.size) {
+        throw VaultException("VAULT_FINGERPRINT", "Entrada $index pertence a outra fingerprint. Recusando.")
+      }
+      if (ours.isEmpty()) {
+        throw VaultException("VAULT_FINGERPRINT", "Entrada $index sem origem desta fingerprint. Recusando.")
+      }
+      ours.keys.forEach { pubkey ->
+        if (input.partialSigs.containsKey(pubkey)) {
+          throw VaultException("VAULT_ALREADY_SIGNED", "Entrada $index já tem assinatura deste cofre.")
+        }
+      }
+    }
+
+    val feeSats = try {
+      parsed.computeFees()?.sat
+    } catch (_: Exception) {
+      null
+    } ?: throw VaultException("VAULT_INVALID_PSBT", "Não foi possível calcular a taxa.")
+
+    val outputs = parsed.global.tx.txOut.map { txOut ->
+      val address = Bitcoin.addressFromPublicKeyScript(Block.SignetGenesisBlock.hash, txOut.publicKeyScript.toByteArray())
+        .getOrElse { throw VaultException("VAULT_REFUSED", "Saída com script não decodificável.") }
+      if (!address.startsWith("tb1")) {
+        throw VaultException("VAULT_REFUSED", "Saída não é endereço tb1 Signet.")
+      }
+      PsbtReviewOutput(address = address, sats = txOut.amount.sat)
+    }
+
+    return PsbtReview(
+      masterFingerprint = expectedFingerprint,
+      inputCount = parsed.inputs.size,
+      outputs = outputs,
+      feeSats = feeSats,
+    )
   }
 
   fun signPsbt(words: List<String>, psbtBytes: ByteArray): Pair<ByteArray, Int> {
